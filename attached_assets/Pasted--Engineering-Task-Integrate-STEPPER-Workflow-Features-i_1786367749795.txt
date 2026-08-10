@@ -1,0 +1,25 @@
+# Engineering Task: Integrate STEPPER Workflow Features into GCM
+
+Please update the GCM (Ghettochip Studio) web application codebase to incorporate advanced hardware-inspired retro sequencer workflows derived from the STEPPER GBA engine. Implement the following module enhancements:
+
+## Task 1: Per-Trigger Parameter Locking
+- [ ] Update channel step data structures to support a `parameters` object per step/trigger (e.g., volume offset, pitch shift, duty cycle/wavetable index).
+- [ ] Add a UI interaction (such as holding a key/modifier or clicking a parameter drawer) when editing a step to adjust its individual trigger parameters.
+- [ ] Visually distinguish steps that contain customized trigger parameters from standard active steps in the channel rack and piano roll.
+
+## Task 2: Live Pattern Queueing & Chain Arranger
+- [ ] Implement a pattern queueing mechanism: clicking a pattern in pattern selection mode highlights it (e.g., in blue) and queues it to switch seamlessly at the end of the current 32-step cycle.
+- [ ] Expand the song arrangement/playlist view to support creating, toggling, and randomizing pattern chains (up to 16 linked patterns for live performance).
+- [ ] Display the currently playing pattern chain status and queue state in the notification/status bar.
+
+## Task 3: Contextual Copy/Paste Clipboard System
+- [ ] Create a global clipboard state in application memory to handle copy and paste operations for:
+  - **Whole Patterns:** Copying all active channels, triggers, and parameters across a pattern.
+  - **Channels:** Copying notes and triggers between channels (with parameter carry-over if channel types match).
+  - **Triggers/Parameters:** Copying individual trigger notes, active states, or parameter lock data.
+- [ ] Add intuitive UI triggers or shortcut buttons for copy and paste actions.
+
+## Task 4: Scale Snapping & Octave Transposing in Note Sequencer
+- [ ] Add a scale/key selection option to the note sequencer/piano roll settings.
+- [ ] Ensure that notes entered into the piano roll automatically quantize and snap to the nearest valid note in the selected scale.
+- [ ] Implement quick octave transposition shortcuts/controls to transpose selected notes or entire channels up/down by whole octaves.

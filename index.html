@@ -182,6 +182,9 @@
         .pr-steps { display: flex; gap: 2px; }
         .pr-step-btn { width: 22px; height: 20px; background: var(--step-off-2); border: 1px solid var(--panel-border); border-radius: 2px; cursor: pointer; flex-shrink: 0; }
         .pr-step-btn.active { background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan); border-color: white; }
+         .pr-step-btn.scale-off { opacity: 0.42; }
+         .pr-step-btn.selected { outline: 2px solid var(--accent-yellow); outline-offset: 1px; }
+         .pr-step-btn.locked, .step-btn.locked { box-shadow: 0 0 0 2px var(--accent-yellow), 0 0 7px var(--accent-yellow); border-color: white; }
 
         /* --- GLITCH SEQUENCER MODAL --- */
         .glitch-grid-container { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; width: max-content; }
@@ -214,6 +217,7 @@
         .tl-block { width: 36px; height: 16px; background: var(--step-off-2); border: 1px solid var(--panel-border); border-radius: 2px; cursor: pointer; flex-shrink: 0; }
         .tl-block:hover { background: var(--btn-hover); }
         .tl-block.active { background: var(--accent-cyan); box-shadow: inset 0 0 6px rgba(0,0,0,0.3); border-color: white; }
+         .tl-block.chain-current { background: var(--accent-orange); border-color: white; }
 
         .add-pattern-row { display: flex; gap: 6px; align-items: center; margin-top: 4px; width: max-content; }
         .add-pattern-btn { width: 65px; height: 18px; background: var(--accent-green); color: white; border: none; font-size: 8px; font-weight: bold; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 2px; }
@@ -243,6 +247,7 @@
         .step-btn.group-a { background: var(--step-off-1); }
         .step-btn.group-b { background: var(--step-off-2); }
         .step-btn.active { background: var(--accent-orange) !important; box-shadow: 0 0 4px var(--accent-orange); border-color: white; }
+         .step-btn.selected { outline: 2px solid var(--accent-yellow); outline-offset: 1px; }
         .bar-divider { width: 2px; height: 28px; background: var(--accent-red); margin: 0 2px; opacity: 0.4; flex-shrink: 0; }
 
         /* ADD CHANNEL ROW */
@@ -251,6 +256,15 @@
         .add-channel-btn:hover { opacity: 0.9; }
 
         input[type="file"] { display: none; }
+         .workflow-toolbar { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+         .workflow-toolbar .btn { font-size: 8px; padding: 3px 5px; }
+         .workflow-toolbar select, .workflow-toolbar input { font-size: 9px; }
+         .workflow-toolbar input[type="range"] { width: 56px; accent-color: var(--accent-yellow); }
+         .workflow-toolbar .active { background: var(--accent-yellow); color: #111; border-color: white; }
+         .status-bar { min-width: 180px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent-cyan); font-size: 9px; font-weight: bold; padding: 3px 5px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.04); border-radius: 3px; }
+         .chain-controls { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; padding: 3px 8px 0 73px; }
+         .chain-controls .btn { font-size: 8px; padding: 3px 6px; }
+         .chain-controls .chain-help { font-size: 8px; color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -324,6 +338,21 @@
                         <option value="0">Pattern 1</option><option value="1">Pattern 2</option><option value="2">Pattern 3</option><option value="3">Pattern 4</option>
                     </select>
                 </div>
+                <div class="workflow-toolbar">
+                    <span style="font-size:8px;font-weight:bold;color:var(--text-muted)">LOCK</span>
+                    <span id="selected-step-label" style="font-size:8px;color:var(--accent-yellow)">NONE</span>
+                    <label style="font-size:8px">V <input type="range" id="lock-volume" min="-1" max="1" step="0.05" value="0"></label>
+                    <label style="font-size:8px">P <input type="range" id="lock-pitch" min="-12" max="12" step="1" value="0"></label>
+                    <label style="font-size:8px">D <input type="range" id="lock-duty" min="0" max="3" step="1" value="0"></label>
+                    <button class="btn" id="btn-clear-lock">CLEAR</button>
+                    <button class="btn" id="btn-copy-pattern">C PAT</button>
+                    <button class="btn" id="btn-paste-pattern">P PAT</button>
+                    <button class="btn" id="btn-copy-channel">C CH</button>
+                    <button class="btn" id="btn-paste-channel">P CH</button>
+                    <button class="btn" id="btn-copy-trigger">C TRIG</button>
+                    <button class="btn" id="btn-paste-trigger">P TRIG</button>
+                    <span class="status-bar" id="workflow-status">READY</span>
+                </div>
             </div>
         </div>
     </div>
@@ -392,6 +421,19 @@
                 <button class="icon-btn-close" id="btn-close-note-seq" title="Close">✕</button>
             </div>
             <div class="modal-scroll-area">
+                <div class="workflow-toolbar">
+                    <label style="font-size:9px;font-weight:bold">KEY
+                        <select id="note-key">
+                            <option value="0">C</option><option value="1">C#</option><option value="2">D</option><option value="3">D#</option><option value="4">E</option><option value="5">F</option><option value="6">F#</option><option value="7">G</option><option value="8">G#</option><option value="9">A</option><option value="10">A#</option><option value="11">B</option>
+                        </select>
+                    </label>
+                    <label style="font-size:9px;font-weight:bold">SCALE
+                        <select id="note-scale"><option value="chromatic">CHROMATIC</option><option value="major">MAJOR</option><option value="minor">MINOR</option></select>
+                    </label>
+                    <button class="btn" id="btn-octave-down">OCT −</button>
+                    <button class="btn" id="btn-octave-up">OCT +</button>
+                    <span class="chain-help">Notes snap to the selected key/scale. Octave applies to this channel.</span>
+                </div>
                 <div class="piano-roll-container" id="piano-roll-grid"></div>
             </div>
             <div class="indicator-strip-row">
@@ -520,6 +562,8 @@
         }),
         patternMutes: Array(4).fill(0).map(() => ({})),
         patternMidiNotes: Array(4).fill(0).map(() => ({})),
+         patternParameters: Array(4).fill(0).map(() => ({})),
+         patternOctaveOffsets: Array(4).fill(0).map(() => ({})),
         glitchPatterns: Array(4).fill(0).map(() => ({
             tapestop: Array(TOTAL_STEPS).fill(false),
             retrigger: Array(TOTAL_STEPS).fill(false),
@@ -527,7 +571,8 @@
             crusher: Array(TOTAL_STEPS).fill(false),
             gater: Array(TOTAL_STEPS).fill(false)
         })),
-        songTimeline: Array(4).fill(0).map(() => Array(TL_BLOCKS).fill(false))
+         songTimeline: Array(4).fill(0).map(() => Array(TL_BLOCKS).fill(false)),
+         noteSettings: { key: 0, scale: 'chromatic' }
     };
 
     // Apply theme
@@ -538,6 +583,237 @@
     let currentStep = 0, currentBlock = 0, nextNoteTime = 0.0, timerId = null;
     let customAudioBuffers = {};
     let activeNoteSeqTech = 'lead';
+    let pendingPattern = null;
+    let selectedTrigger = { trackId: null, step: null };
+    let clipboard = null;
+
+    function cloneData(value) {
+        return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function ensurePatternData() {
+        if(!Array.isArray(state.patternParameters)) state.patternParameters = [];
+        while(state.patternParameters.length < state.patterns.length) state.patternParameters.push({});
+        if(!Array.isArray(state.patternOctaveOffsets)) state.patternOctaveOffsets = [];
+        while(state.patternOctaveOffsets.length < state.patterns.length) state.patternOctaveOffsets.push({});
+        state.patterns.forEach((pattern, patternIndex) => {
+            if(!state.patternMidiNotes[patternIndex]) state.patternMidiNotes[patternIndex] = {};
+            if(!state.patternParameters[patternIndex]) state.patternParameters[patternIndex] = {};
+            if(!state.patternOctaveOffsets[patternIndex]) state.patternOctaveOffsets[patternIndex] = {};
+            state.tracks.forEach(track => {
+                const stepCount = track.stepsCount || TOTAL_STEPS;
+                if(!pattern[track.id]) pattern[track.id] = Array(stepCount).fill(false);
+                if(!state.patternParameters[patternIndex][track.id]) {
+                    state.patternParameters[patternIndex][track.id] = Array(stepCount).fill(null);
+                }
+                if(state.patternOctaveOffsets[patternIndex][track.id] == null) {
+                    state.patternOctaveOffsets[patternIndex][track.id] = 0;
+                }
+            });
+        });
+    }
+
+    function getTriggerParameters(patternIndex, trackId, step) {
+        ensurePatternData();
+        return state.patternParameters[patternIndex] &&
+            state.patternParameters[patternIndex][trackId] &&
+            state.patternParameters[patternIndex][trackId][step] || null;
+    }
+
+    function hasTriggerParameters(params) {
+        return !!params && Object.values(params).some(value => Number(value) !== 0);
+    }
+
+    function setWorkflowStatus(message) {
+        const status = document.getElementById('workflow-status');
+        if(status) status.innerText = message;
+    }
+
+    function selectTrigger(trackId, step) {
+        selectedTrigger = { trackId, step };
+        const label = document.getElementById('selected-step-label');
+        if(label) label.innerText = `${trackId.toUpperCase()} / ${String(step + 1).padStart(2, '0')}`;
+        const params = getTriggerParameters(currentPattern, trackId, step) || {};
+        ['volume', 'pitch', 'duty'].forEach(key => {
+            const input = document.getElementById(`lock-${key}`);
+            if(input) input.value = params[key] || 0;
+        });
+    }
+
+    function updateTriggerParameter(key, value) {
+        if(selectedTrigger.trackId == null || selectedTrigger.step == null) {
+            setWorkflowStatus('Select a trigger first');
+            return;
+        }
+        ensurePatternData();
+        const locks = state.patternParameters[currentPattern][selectedTrigger.trackId];
+        const existing = locks[selectedTrigger.step] || { volume: 0, pitch: 0, duty: 0 };
+        existing[key] = Number(value);
+        locks[selectedTrigger.step] = hasTriggerParameters(existing) ? existing : null;
+        renderRack();
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(activeNoteSeqTech);
+        setWorkflowStatus(`${selectedTrigger.trackId.toUpperCase()} ${selectedTrigger.step + 1}: ${key.toUpperCase()} LOCK`);
+    }
+
+    function trackType(track) {
+        if(track.type) return track.type;
+        if(track.soundId) return track.soundId.includes('kick') || track.soundId.includes('snare') || track.soundId.includes('drum') ? 'drum' : 'melodic';
+        return ['kick', 'snare', 'hat', 'noise'].includes(track.id) ? 'drum' : 'melodic';
+    }
+
+    const scaleIntervals = {
+        chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        major: [0, 2, 4, 5, 7, 9, 11],
+        minor: [0, 2, 3, 5, 7, 8, 10]
+    };
+
+    function isScaleNote(midi) {
+        const settings = state.noteSettings || { key: 0, scale: 'chromatic' };
+        return scaleIntervals[settings.scale || 'chromatic'].includes((midi - Number(settings.key || 0) + 120) % 12);
+    }
+
+    function snapToScale(midi) {
+        if(isScaleNote(midi)) return midi;
+        for(let distance = 1; distance <= 12; distance++) {
+            if(isScaleNote(midi - distance)) return midi - distance;
+            if(isScaleNote(midi + distance)) return midi + distance;
+        }
+        return midi;
+    }
+
+    function queuePattern(patternIndex) {
+        if(patternIndex < 0 || patternIndex >= state.patterns.length) return;
+        if(isPlaying) {
+            pendingPattern = patternIndex;
+            setWorkflowStatus(`QUEUED PATTERN ${patternIndex + 1} @ CYCLE END`);
+        } else {
+            currentPattern = patternIndex;
+            renderRack();
+            setWorkflowStatus(`EDITING PATTERN ${patternIndex + 1}`);
+        }
+        updatePatternDropdown();
+    }
+
+    function applyQueuedPattern() {
+        if(pendingPattern == null) return;
+        currentPattern = pendingPattern;
+        pendingPattern = null;
+        renderRack();
+        renderTimeline();
+        setWorkflowStatus(`PLAYING PATTERN ${currentPattern + 1}`);
+    }
+
+    function randomizeChain() {
+        state.songTimeline = state.songTimeline.map(row => row.map(() => false));
+        const patternCount = Math.min(16, state.patterns.length);
+        for(let block = 0; block < TL_BLOCKS; block++) {
+            const patternIndex = Math.floor(Math.random() * patternCount);
+            state.songTimeline[patternIndex][block] = true;
+        }
+        renderTimeline();
+        setWorkflowStatus(`RANDOMIZED ${TL_BLOCKS}-BLOCK PATTERN CHAIN`);
+    }
+
+    function copyPattern() {
+        ensurePatternData();
+        clipboard = {
+            type: 'pattern',
+            pattern: cloneData(state.patterns[currentPattern]),
+            midi: cloneData(state.patternMidiNotes[currentPattern]),
+            parameters: cloneData(state.patternParameters[currentPattern]),
+            mutes: cloneData(state.patternMutes[currentPattern]),
+            glitch: cloneData(state.glitchPatterns[currentPattern])
+        };
+        setWorkflowStatus(`COPIED PATTERN ${currentPattern + 1}`);
+    }
+
+    function pastePattern() {
+        if(!clipboard || clipboard.type !== 'pattern') {
+            setWorkflowStatus('NO PATTERN CLIPBOARD');
+            return;
+        }
+        state.patterns[currentPattern] = cloneData(clipboard.pattern);
+        state.patternMidiNotes[currentPattern] = cloneData(clipboard.midi);
+        state.patternParameters[currentPattern] = cloneData(clipboard.parameters);
+        state.patternMutes[currentPattern] = cloneData(clipboard.mutes);
+        state.glitchPatterns[currentPattern] = cloneData(clipboard.glitch);
+        ensurePatternData();
+        renderRack();
+        setWorkflowStatus(`PASTED PATTERN ${currentPattern + 1}`);
+    }
+
+    function copyChannel() {
+        const trackId = selectedTrigger.trackId || activeNoteSeqTech;
+        if(!trackId) return setWorkflowStatus('SELECT A CHANNEL FIRST');
+        ensurePatternData();
+        clipboard = {
+            type: 'channel',
+            sourceTrackId: trackId,
+            trackType: trackType(state.tracks.find(track => track.id === trackId) || {}),
+            pattern: cloneData(state.patterns[currentPattern][trackId]),
+            midi: cloneData(state.patternMidiNotes[currentPattern][trackId]),
+            parameters: cloneData(state.patternParameters[currentPattern][trackId]),
+            octave: Number(state.patternOctaveOffsets[currentPattern][trackId] || 0)
+        };
+        setWorkflowStatus(`COPIED CHANNEL ${trackId.toUpperCase()}`);
+    }
+
+    function pasteChannel() {
+        if(!clipboard || clipboard.type !== 'channel') {
+            setWorkflowStatus('NO CHANNEL CLIPBOARD');
+            return;
+        }
+        const targetId = activeNoteSeqTech || selectedTrigger.trackId;
+        const target = state.tracks.find(track => track.id === targetId);
+        if(!target) return setWorkflowStatus('SELECT A TARGET CHANNEL');
+        if(trackType(target) !== clipboard.trackType) {
+            setWorkflowStatus('CHANNEL TYPES MUST MATCH');
+            return;
+        }
+        ensurePatternData();
+        state.patterns[currentPattern][targetId] = cloneData(clipboard.pattern);
+        state.patternMidiNotes[currentPattern][targetId] = cloneData(clipboard.midi);
+        state.patternParameters[currentPattern][targetId] = cloneData(clipboard.parameters);
+        state.patternOctaveOffsets[currentPattern][targetId] = clipboard.octave;
+        renderRack();
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(targetId);
+        setWorkflowStatus(`PASTED CHANNEL TO ${targetId.toUpperCase()}`);
+    }
+
+    function copyTrigger() {
+        if(selectedTrigger.trackId == null || selectedTrigger.step == null) {
+            setWorkflowStatus('SELECT A TRIGGER FIRST');
+            return;
+        }
+        ensurePatternData();
+        clipboard = {
+            type: 'trigger',
+            active: !!state.patterns[currentPattern][selectedTrigger.trackId][selectedTrigger.step],
+            parameters: cloneData(getTriggerParameters(currentPattern, selectedTrigger.trackId, selectedTrigger.step))
+        };
+        setWorkflowStatus(`COPIED TRIGGER ${selectedTrigger.step + 1}`);
+    }
+
+    function pasteTrigger() {
+        if(!clipboard || clipboard.type !== 'trigger' || selectedTrigger.trackId == null || selectedTrigger.step == null) {
+            setWorkflowStatus('SELECT A TARGET TRIGGER');
+            return;
+        }
+        ensurePatternData();
+        state.patterns[currentPattern][selectedTrigger.trackId][selectedTrigger.step] = clipboard.active;
+        state.patternParameters[currentPattern][selectedTrigger.trackId][selectedTrigger.step] = cloneData(clipboard.parameters);
+        renderRack();
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(activeNoteSeqTech);
+        setWorkflowStatus(`PASTED TRIGGER ${selectedTrigger.step + 1}`);
+    }
+
+    function transposeChannelOctave(trackId, direction) {
+        ensurePatternData();
+        const current = Number(state.patternOctaveOffsets[currentPattern][trackId] || 0);
+        state.patternOctaveOffsets[currentPattern][trackId] = Math.max(-3, Math.min(3, current + direction));
+        renderPianoRollGrid(trackId);
+        setWorkflowStatus(`${trackId.toUpperCase()} OCTAVE ${state.patternOctaveOffsets[currentPattern][trackId] >= 0 ? '+' : ''}${state.patternOctaveOffsets[currentPattern][trackId]}`);
+    }
 
     // Default beat setup
     for(let i=0; i<TOTAL_STEPS; i++) {
@@ -592,11 +868,20 @@
             if(type === 'pan') this.channels[id].pan.pan.value = val;
         }
 
-        trigger(sound, time, pitchMod = 1) {
+        trigger(sound, time, pitchMod = 1, triggerParams = null) {
             if (this.ctx.state === 'suspended') this.ctx.resume();
             const t = time || this.ctx.currentTime;
             if(!this.channels[sound]) this.initChannelNode(sound);
-            const dest = this.channels[sound].pan; 
+            const channelDest = this.channels[sound].pan;
+            const params = triggerParams || {};
+            pitchMod *= Math.pow(2, Number(params.pitch || 0) / 12);
+            let dest = channelDest;
+            if(Number(params.volume || 0) !== 0) {
+                const triggerGain = this.ctx.createGain();
+                triggerGain.gain.value = Math.max(0, 1 + Number(params.volume || 0));
+                triggerGain.connect(channelDest);
+                dest = triggerGain;
+            }
             
             if (customAudioBuffers[sound]) {
                 let src = this.ctx.createBufferSource();
@@ -1024,13 +1309,20 @@
             let row = document.createElement('div'); row.className = 'tl-row';
             let color = trackColors[p % trackColors.length];
             row.innerHTML = `<div class="tl-label" style="color:${color}">PAT ${p+1}</div>`;
+            const patternLabel = row.querySelector('.tl-label');
+            if(p === currentPattern) patternLabel.classList.add('queued');
+            if(p === pendingPattern) patternLabel.classList.add('queued');
+            patternLabel.title = `Click to ${isPlaying ? 'queue' : 'select'} Pattern ${p + 1}`;
+            patternLabel.onclick = () => queuePattern(p);
             let blocks = document.createElement('div'); blocks.className = 'tl-blocks';
             for(let b=0; b<TL_BLOCKS; b++) {
                 let blk = document.createElement('div'); blk.className = 'tl-block';
                 if(state.songTimeline[p][b]) blk.classList.add('active');
+                if(isSongMode && currentBlock === b && state.songTimeline[p][b]) blk.classList.add('chain-current');
                 blk.onclick = () => {
                     state.songTimeline[p][b] = !state.songTimeline[p][b];
                     blk.classList.toggle('active', state.songTimeline[p][b]);
+                    setWorkflowStatus(`CHAIN BLOCK ${b + 1}: ${state.songTimeline[p][b] ? `PATTERN ${p + 1}` : 'EMPTY'}`);
                 };
                 blocks.appendChild(blk);
             }
@@ -1048,6 +1340,20 @@
             <div style="font-size: 8px; color: var(--text-muted);">Create new song arrangement pattern row</div>
         `;
         c.appendChild(addRow);
+        let chainControls = document.createElement('div');
+        chainControls.className = 'chain-controls';
+        chainControls.innerHTML = `
+            <button class="btn" id="btn-chain-random">RANDOM CHAIN</button>
+            <button class="btn" id="btn-chain-clear">CLEAR CHAIN</button>
+            <span class="chain-help">Up to 16 linked patterns. Blue blocks are active; orange marks the playing chain position.</span>
+        `;
+        c.appendChild(chainControls);
+        document.getElementById('btn-chain-random').onclick = randomizeChain;
+        document.getElementById('btn-chain-clear').onclick = () => {
+            state.songTimeline = state.songTimeline.map(row => row.map(() => false));
+            renderTimeline();
+            setWorkflowStatus('PATTERN CHAIN CLEARED');
+        };
 
         document.getElementById('btn-add-pattern').onclick = () => {
             let newPatIdx = state.songTimeline.length;
@@ -1057,6 +1363,8 @@
             state.patterns.push(emptyPat);
             state.patternMutes.push({});
             state.patternMidiNotes.push({});
+            state.patternParameters.push({});
+            state.patternOctaveOffsets.push({});
             state.glitchPatterns.push({
                 tapestop: Array(TOTAL_STEPS).fill(false),
                 retrigger: Array(TOTAL_STEPS).fill(false),
@@ -1085,6 +1393,7 @@
     }
 
     function renderRack() {
+        ensurePatternData();
         const c = document.getElementById('tracks-list'); c.innerHTML = '';
         state.tracks.forEach(track => {
             let row = document.createElement('div'); row.className = 'track-row';
@@ -1145,13 +1454,15 @@
                 btn.dataset.track = track.id;
                 btn.dataset.step = i;
                 if (state.patterns[currentPattern][track.id][i]) btn.classList.add('active');
+                 if (hasTriggerParameters(getTriggerParameters(currentPattern, track.id, i))) btn.classList.add('locked');
                 
                 btn.onclick = () => {
+                    selectTrigger(track.id, i);
                     state.patterns[currentPattern][track.id][i] = !state.patterns[currentPattern][track.id][i];
                     btn.classList.toggle('active', state.patterns[currentPattern][track.id][i]);
                     if(state.patterns[currentPattern][track.id][i] && audio && !isMuted) {
                         let triggerKey = customAudioBuffers[track.id] !== undefined ? track.id : track.id;
-                        audio.trigger(triggerKey);
+                        audio.trigger(triggerKey, null, 1, getTriggerParameters(currentPattern, track.id, i));
                     }
                 };
                 steps.appendChild(btn);
@@ -1175,6 +1486,7 @@
     }
 
     function renderPianoRollGrid(trackId) {
+        ensurePatternData();
         pianoRollGrid.innerHTML = '';
         if(!state.patternMidiNotes[currentPattern]) state.patternMidiNotes[currentPattern] = {};
         if(!state.patternMidiNotes[currentPattern][trackId]) {
@@ -1190,19 +1502,32 @@
             for(let s=0; s<TOTAL_STEPS; s++) {
                 if (s > 0 && s % 16 === 0) stepsDiv.appendChild(document.createElement('div')).className = 'bar-divider';
                 let btn = document.createElement('div'); btn.className = 'pr-step-btn';
+                const midiNote = 83 - pIdx;
+                if(!isScaleNote(midiNote)) btn.classList.add('scale-off');
                 if(gridData[pIdx][s]) btn.classList.add('active');
+                if(hasTriggerParameters(getTriggerParameters(currentPattern, trackId, s))) btn.classList.add('locked');
+                if(selectedTrigger.trackId === trackId && selectedTrigger.step === s) btn.classList.add('selected');
 
                 btn.onclick = () => {
-                    gridData[pIdx][s] = !gridData[pIdx][s];
-                    btn.classList.toggle('active', gridData[pIdx][s]);
-                    if(gridData[pIdx][s]) {
+                    const snappedNote = Math.max(72, Math.min(83, snapToScale(midiNote)));
+                    const targetRow = 83 - snappedNote;
+                    const alreadyActive = gridData[pIdx][s] && targetRow === pIdx;
+                    for(let noteRow = 0; noteRow < 12; noteRow++) gridData[noteRow][s] = false;
+                    if(!alreadyActive) {
+                        gridData[targetRow][s] = true;
                         state.patterns[currentPattern][trackId][s] = true;
+                        selectTrigger(trackId, s);
                         if(audio) {
-                            let pitchMult = Math.pow(2, (6 - pIdx) / 12);
-                            audio.trigger(trackId, null, pitchMult);
+                            const octave = Number(state.patternOctaveOffsets[currentPattern][trackId] || 0);
+                            const pitchMult = Math.pow(2, ((6 - targetRow) / 12) + octave);
+                            audio.trigger(trackId, null, pitchMult, getTriggerParameters(currentPattern, trackId, s));
                         }
+                    } else {
+                        state.patterns[currentPattern][trackId][s] = false;
+                        selectTrigger(trackId, s);
                     }
                     renderRack();
+                    renderPianoRollGrid(trackId);
                 };
                 stepsDiv.appendChild(btn);
             }
@@ -1212,6 +1537,21 @@
     }
 
     document.getElementById('btn-close-note-seq').onclick = () => noteSeqModal.classList.remove('open');
+
+    document.getElementById('note-key').onchange = e => {
+        state.noteSettings = state.noteSettings || {};
+        state.noteSettings.key = Number(e.target.value);
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(activeNoteSeqTech);
+        setWorkflowStatus(`KEY ${e.target.options[e.target.selectedIndex].text}`);
+    };
+    document.getElementById('note-scale').onchange = e => {
+        state.noteSettings = state.noteSettings || {};
+        state.noteSettings.scale = e.target.value;
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(activeNoteSeqTech);
+        setWorkflowStatus(`SCALE ${e.target.value.toUpperCase()}`);
+    };
+    document.getElementById('btn-octave-down').onclick = () => transposeChannelOctave(activeNoteSeqTech, -1);
+    document.getElementById('btn-octave-up').onclick = () => transposeChannelOctave(activeNoteSeqTech, 1);
 
     // --- GLITCH SEQUENCER MODAL ---
     const glitchModal = document.getElementById('glitch-modal');
@@ -1265,6 +1605,7 @@
         currentStep++;
         if (currentStep >= TOTAL_STEPS) {
             currentStep = 0;
+            applyQueuedPattern();
             if (isSongMode) {
                 currentBlock++;
                 if (currentBlock >= TL_BLOCKS) {
@@ -1281,6 +1622,10 @@
             for(let p=0; p<state.songTimeline.length; p++) {
                 if (state.songTimeline[p] && state.songTimeline[p][block]) activePat = p;
             }
+        }
+        ensurePatternData();
+        if(isPlaying) {
+            setWorkflowStatus(`PLAYING PATTERN ${activePat + 1}${pendingPattern == null ? '' : ` · QUEUED ${pendingPattern + 1}`}`);
         }
 
         let gfx = state.glitchPatterns[activePat] || state.glitchPatterns[0];
@@ -1300,22 +1645,24 @@
                 
                 let midiNotesObj = state.patternMidiNotes[activePat] && state.patternMidiNotes[activePat][t.id];
                 let playedFromPianoRoll = false;
+                 const triggerParams = getTriggerParameters(activePat, t.id, trackStep);
+                 const octave = Number(state.patternOctaveOffsets[activePat] && state.patternOctaveOffsets[activePat][t.id] || 0);
 
                 if (midiNotesObj) {
                     for(let pIdx=0; pIdx<12; pIdx++) {
                         if (midiNotesObj[pIdx] && midiNotesObj[pIdx][trackStep]) {
-                            let pitch = Math.pow(2, (6 - pIdx) / 12) * (isRev ? 0.5 : (isCrush ? 2.0 : 1.0));
-                            audio.trigger(t.id, time, pitch);
+                             let pitch = Math.pow(2, ((6 - pIdx) / 12) + octave) * (isRev ? 0.5 : (isCrush ? 2.0 : 1.0));
+                             audio.trigger(t.id, time, pitch, triggerParams);
                             playedFromPianoRoll = true;
                         }
                     }
                 }
 
                 if (!playedFromPianoRoll && patArr && patArr[trackStep]) {
-                    let pitch = isRev ? 0.5 : (isCrush ? 2.0 : 1.0);
-                    audio.trigger(t.id, time, pitch);
+                     let pitch = Math.pow(2, octave) * (isRev ? 0.5 : (isCrush ? 2.0 : 1.0));
+                     audio.trigger(t.id, time, pitch, triggerParams);
                     if(isRetrig) {
-                        audio.trigger(t.id, time + ((60.0 / state.bpm) * 0.125), pitch);
+                         audio.trigger(t.id, time + ((60.0 / state.bpm) * 0.125), pitch, triggerParams);
                     }
                 } 
             });
@@ -1595,10 +1942,31 @@
     bindKnob('bpm', 'bpm'); bindKnob('lpf', 'lpf', 'Hz', true); bindKnob('dist', 'dist', '%', true);
     
     document.getElementById('sel-pattern').onchange = e => { 
-        currentPattern = parseInt(e.target.value); 
-        renderRack(); 
+        queuePattern(parseInt(e.target.value)); 
         if(glitchModal.classList.contains('open')) renderGlitchModal();
     };
+
+    ['volume', 'pitch', 'duty'].forEach(key => {
+        document.getElementById(`lock-${key}`).oninput = e => updateTriggerParameter(key, e.target.value);
+    });
+    document.getElementById('btn-clear-lock').onclick = () => {
+        if(selectedTrigger.trackId == null || selectedTrigger.step == null) {
+            setWorkflowStatus('SELECT A TRIGGER FIRST');
+            return;
+        }
+        ensurePatternData();
+        state.patternParameters[currentPattern][selectedTrigger.trackId][selectedTrigger.step] = null;
+        renderRack();
+        if(noteSeqModal.classList.contains('open')) renderPianoRollGrid(activeNoteSeqTech);
+        selectTrigger(selectedTrigger.trackId, selectedTrigger.step);
+        setWorkflowStatus('TRIGGER LOCK CLEARED');
+    };
+    document.getElementById('btn-copy-pattern').onclick = copyPattern;
+    document.getElementById('btn-paste-pattern').onclick = pastePattern;
+    document.getElementById('btn-copy-channel').onclick = copyChannel;
+    document.getElementById('btn-paste-channel').onclick = pasteChannel;
+    document.getElementById('btn-copy-trigger').onclick = copyTrigger;
+    document.getElementById('btn-paste-trigger').onclick = pasteTrigger;
 
     document.getElementById('btn-save').onclick = () => {
         const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state)); a.download = "beat.gcp"; a.click();
@@ -1609,12 +1977,18 @@
         reader.onload = ev => {
             try {
                 state = JSON.parse(ev.target.result);
+                state.patternParameters = state.patternParameters || Array(state.patterns.length).fill(0).map(() => ({}));
+                state.patternOctaveOffsets = state.patternOctaveOffsets || Array(state.patterns.length).fill(0).map(() => ({}));
+                state.noteSettings = state.noteSettings || { key: 0, scale: 'chromatic' };
+                ensurePatternData();
                 document.documentElement.setAttribute('data-theme', state.theme || 'mario');
                 updateThemeButtonText();
                 document.getElementById('sl-bpm').value = state.bpm; document.getElementById('val-bpm').innerText = state.bpm;
                 document.getElementById('sl-lpf').value = state.lpf; document.getElementById('val-lpf').innerText = state.lpf + 'Hz';
                 document.getElementById('sl-dist').value = state.dist; document.getElementById('val-dist').innerText = state.dist + '%';
                 updatePatternDropdown();
+                document.getElementById('note-key').value = state.noteSettings.key || 0;
+                document.getElementById('note-scale').value = state.noteSettings.scale || 'chromatic';
                 if(audio) { audio.updateFX(); state.tracks.forEach(t => { audio.updateMix(t.id, 'vol', t.vol); audio.updateMix(t.id, 'pan', t.pan); }); }
                 renderTimeline(); renderRack();
             } catch(err) { alert("Invalid Project File!"); }
