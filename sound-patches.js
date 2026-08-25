@@ -77,6 +77,21 @@
         return PATCHES[id] || null;
     }
 
+    function missingTracks(tracks) {
+        return (tracks || [])
+            .filter(
+                (track) =>
+                    track &&
+                    track.soundId &&
+                    !PATCHES[track.soundId],
+            )
+            .map((track) => ({
+                trackId: track.id,
+                trackName: track.name || track.id || "Unnamed channel",
+                soundId: track.soundId,
+            }));
+    }
+
     function validate(ids) {
         const missing = [...new Set(ids)].filter((id) => !PATCHES[id]);
         if (missing.length) {
@@ -191,5 +206,6 @@
         recipeFor,
         render,
         validate,
+        missingTracks,
     };
 })();

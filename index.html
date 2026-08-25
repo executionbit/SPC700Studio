@@ -787,6 +787,30 @@
             .track-name-clickable:hover {
                 color: var(--accent-cyan);
             }
+            .track-row.needs-repair .track-info {
+                border-color: var(--accent-red);
+                box-shadow: 0 0 0 1px var(--accent-red);
+            }
+            .track-repair {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                max-width: 245px;
+                padding: 3px 5px;
+                color: var(--accent-red);
+                background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+                border: 1px solid var(--accent-red);
+                border-radius: 3px;
+                font-size: 8px;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
+            .track-repair select {
+                min-width: 110px;
+                max-width: 145px;
+                font-size: 8px;
+                color: var(--text-main);
+            }
 
             .track-controls-inline {
                 display: flex;
@@ -3040,6 +3064,17 @@
                         (track) => track.id === sound,
                     );
                     const soundId = (track && track.soundId) || sound;
+                    if (
+                        !customAudioBuffers[sound] &&
+                        window.GhettochipPatchBank &&
+                        !window.GhettochipPatchBank.has(soundId)
+                    ) {
+                        this.onStatus(
+                            `${track ? track.name : sound}: SOUND "${soundId}" NEEDS REPAIR`,
+                            false,
+                        );
+                        return;
+                    }
                     const isCoreDspVoice =
                         sound === soundId &&
                         [
@@ -3920,9 +3955,21 @@
                 ensurePatternData();
                 const c = document.getElementById("tracks-list");
                 c.innerHTML = "";
+                const missingTracks =
+                    window.GhettochipPatchBank?.missingTracks(state.tracks) || [];
+                const missingByTrackId = new Map(
+                    missingTracks.map((missing) => [missing.trackId, missing]),
+                );
+                const replacementOptions = [
+                    ...Object.values(soundLibraryKits).flat(),
+                    ...dlcSoundPacks
+                        .filter((pack) => pack.unlocked)
+                        .flatMap((pack) => pack.items),
+                ];
                 state.tracks.forEach((track) => {
                     let row = document.createElement("div");
-                    row.className = "track-row";
+                    const missing = missingByTrackId.get(track.id);
+                    row.className = `track-row${missing ? " needs-repair" : ""}`;
                     row.dataset.trackId = track.id;
 
                     let info = document.createElement("div");
@@ -4038,6 +4085,32 @@
                             }
                         };
                         steps.appendChild(btn);
+                    }
+                    if (missing) {
+                        const repair = document.createElement("div");
+                        repair.className = "track-repair";
+                        repair.innerHTML = `
+                            <span>⚠ SOUND "${missing.soundId}" MISSING — REPAIR ${missing.trackName}</span>
+                            <select aria-label="Replace missing sound for ${missing.trackName}">
+                                <option value="">REPLACE SOUND...</option>
+                                ${replacementOptions
+                                    .map(
+                                        (item) =>
+                                            `<option value="${item.id}">${item.name}</option>`,
+                                    )
+                                    .join("")}
+                            </select>
+                        `;
+                        repair.querySelector("select").onchange = (event) => {
+                            const replacementId = event.target.value;
+                            if (!replacementId) return;
+                            track.soundId = replacementId;
+                            renderRack();
+                            setWorkflowStatus(
+                                `${track.name}: SOUND REPAIRED WITH ${replacementId.toUpperCase()}`,
+                            );
+                        };
+                        row.append(repair);
                     }
                     row.append(info, mix, steps);
                     c.appendChild(row);
