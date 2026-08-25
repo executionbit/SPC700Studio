@@ -30,6 +30,13 @@ async function run() {
         "The public-link service returned an unexpected page. Refresh the studio and try again.",
     );
     await expectError(
+        new Response("<!DOCTYPE html><html><body>Not found</body></html>", {
+            status: 404,
+            headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        "The public-link service could not be found. Refresh the studio and try again.",
+    );
+    await expectError(
         new Response("not-json", {
             status: 502,
             headers: { "content-type": "application/json" },
