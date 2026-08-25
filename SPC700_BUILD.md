@@ -13,10 +13,12 @@ workstation does not run the SPC700 CPU, timers, IPL boot ROM, or complete SPC
 music files. Browser scheduling and the original procedural patch bank supply
 the trigger events around the S-DSP core.
 
-The core performance path can run across a pool of independent S-DSP instances;
+The core performance path runs across a pool of independent S-DSP instances;
 each instance has its own 64 KB APU RAM and eight voices. Channels are assigned
-to a chip/local voice pair, so additional channels do not compete for one
-sample namespace. The larger library and DLC catalog uses the same deterministic
+round-robin to a chip/local voice pair, so simultaneous channels use separate
+emulators and additional channels do not compete for one sample namespace. The
+pool also redistributes new events across any healthy instances if one cannot
+initialize. The larger library and DLC catalog uses the same deterministic
 patch recipes through browser-resident audio buffers, preserving longer decays
 while avoiding a finite-RAM failure after browsing many distinct sounds.
 

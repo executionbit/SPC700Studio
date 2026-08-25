@@ -3061,7 +3061,7 @@
             }
 
             class Spc700Pool {
-                constructor(ctx, destination, callbacks = {}, chipCount = 4) {
+                constructor(ctx, destination, callbacks = {}, chipCount = 2) {
                     this.buses = Array.from(
                         { length: chipCount },
                         (_, index) =>
@@ -3090,14 +3090,17 @@
                     );
                     const index =
                         trackIndex >= 0
-                            ? Math.floor(trackIndex / 8) % buses.length
+                            ? trackIndex % buses.length
                             : [...String(event.soundId || event.trackId)].reduce(
                                   (hash, char) => hash + char.charCodeAt(0),
                                   0,
                               ) % buses.length;
                     return {
                         bus: buses[index],
-                        voice: trackIndex >= 0 ? trackIndex % 8 : 0,
+                        voice:
+                            trackIndex >= 0
+                                ? Math.floor(trackIndex / buses.length) % 8
+                                : 0,
                     };
                 }
 
