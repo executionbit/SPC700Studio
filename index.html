@@ -2,6 +2,7 @@
 <html lang="en" data-theme="mario">
     <head>
         <meta charset="UTF-8" />
+        <link rel="icon" href="data:," />
         <meta
             name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -91,6 +92,11 @@
 
             body {
                 background-color: var(--bg-dark);
+                background-image: radial-gradient(
+                    420px circle at var(--pointer-x, 50vw) var(--pointer-y, 24vh),
+                    color-mix(in srgb, var(--accent-cyan) 13%, transparent),
+                    transparent 72%
+                );
                 color: var(--text-main);
                 font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
                 height: 100vh;
@@ -183,13 +189,25 @@
                 display: flex;
                 align-items: center;
                 gap: 5px;
-                transition: 0.1s;
+                transition:
+                    transform 0.14s ease,
+                    background 0.14s ease,
+                    border-color 0.14s ease,
+                    color 0.14s ease,
+                    box-shadow 0.14s ease;
             }
             .btn:hover,
             .btn:active {
                 background: var(--btn-hover);
                 border-color: var(--accent-cyan);
                 color: var(--accent-cyan);
+            }
+            .btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+            }
+            .btn:active {
+                transform: translateY(1px) scale(0.98);
             }
             .btn-play.active {
                 background: var(--accent-green);
@@ -313,6 +331,7 @@
             }
             .modal-overlay.open {
                 display: flex;
+                animation: modal-fade 0.16s ease-out;
             }
             .modal-content {
                 background: var(--panel-bg);
@@ -326,6 +345,7 @@
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
+                animation: modal-rise 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
             }
             .modal-scroll-area {
                 overflow-x: auto;
@@ -394,6 +414,15 @@
                 flex-direction: column;
                 gap: 6px;
                 position: relative;
+                transition:
+                    transform 0.16s ease,
+                    border-color 0.16s ease,
+                    box-shadow 0.16s ease;
+            }
+            .lib-card:hover {
+                transform: translateY(-2px);
+                border-color: var(--accent-cyan);
+                box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
             }
             .lib-card.locked {
                 opacity: 0.85;
@@ -461,6 +490,13 @@
                 border-radius: 2px;
                 cursor: pointer;
                 flex-shrink: 0;
+                transition:
+                    transform 0.12s ease,
+                    background 0.12s ease,
+                    box-shadow 0.12s ease;
+            }
+            .pr-step-btn:hover {
+                transform: scale(1.08);
             }
             .pr-step-btn.active {
                 background: var(--accent-cyan);
@@ -652,9 +688,14 @@
                 border-radius: 2px;
                 cursor: pointer;
                 flex-shrink: 0;
+                transition:
+                    transform 0.12s ease,
+                    background 0.12s ease,
+                    box-shadow 0.12s ease;
             }
             .tl-block:hover {
                 background: var(--btn-hover);
+                transform: translateY(-1px);
             }
             .tl-block.active {
                 background: var(--accent-cyan);
@@ -712,6 +753,7 @@
                 gap: 6px;
                 margin-bottom: 4px;
                 width: max-content;
+                transition: transform 0.14s ease;
             }
 
             .track-info {
@@ -729,6 +771,15 @@
                 display: flex;
                 flex-direction: column;
                 gap: 2px;
+                transition:
+                    transform 0.14s ease,
+                    border-color 0.14s ease,
+                    box-shadow 0.14s ease;
+            }
+            .track-row.voice-active .track-info {
+                transform: translateX(2px);
+                box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 65%, transparent);
+                border-color: var(--accent-cyan);
             }
             .track-name-clickable {
                 cursor: pointer;
@@ -801,6 +852,13 @@
                 border: 1px solid rgba(0, 0, 0, 0.2);
                 cursor: pointer;
                 flex-shrink: 0;
+                transition:
+                    transform 0.11s ease,
+                    background 0.11s ease,
+                    box-shadow 0.11s ease;
+            }
+            .step-btn:hover {
+                transform: translateY(-2px);
             }
             .step-btn.group-a {
                 background: var(--step-off-1);
@@ -812,6 +870,7 @@
                 background: var(--accent-orange) !important;
                 box-shadow: 0 0 4px var(--accent-orange);
                 border-color: white;
+                animation: step-ready 0.2s ease-out;
             }
             .step-btn.selected {
                 outline: 2px solid var(--accent-yellow);
@@ -894,6 +953,66 @@
                 border: 1px solid var(--panel-border);
                 background: rgba(0, 0, 0, 0.04);
                 border-radius: 3px;
+            }
+            .spc-toolbar {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 3px;
+                max-width: 360px;
+                padding: 3px 5px;
+                border: 1px solid var(--panel-border);
+                border-radius: 3px;
+                background: rgba(0, 0, 0, 0.04);
+                font-size: 8px;
+                font-weight: bold;
+            }
+            .spc-led {
+                color: var(--accent-yellow);
+                letter-spacing: 0.35px;
+                white-space: nowrap;
+            }
+            .spc-led.ready {
+                color: var(--accent-green);
+                text-shadow: 0 0 7px color-mix(in srgb, var(--accent-green) 72%, transparent);
+            }
+            .spc-toolbar input[type="range"] {
+                width: 42px;
+                accent-color: var(--accent-green);
+                vertical-align: middle;
+            }
+            .spc-toolbar .btn {
+                font-size: 8px;
+                padding: 3px 5px;
+            }
+            .playhead {
+                outline: 2px solid var(--accent-yellow);
+                outline-offset: 1px;
+                animation: playhead-pulse 0.34s ease-out;
+            }
+            @keyframes step-ready {
+                from { transform: scale(0.84); }
+                to { transform: scale(1); }
+            }
+            @keyframes playhead-pulse {
+                from { box-shadow: 0 0 0 0 var(--accent-yellow); }
+                to { box-shadow: 0 0 10px 4px transparent; }
+            }
+            @keyframes modal-fade {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes modal-rise {
+                from { opacity: 0; transform: translateY(8px) scale(0.985); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                *, *::before, *::after {
+                    animation-duration: 0.001ms !important;
+                    animation-iteration-count: 1 !important;
+                    scroll-behavior: auto !important;
+                    transition-duration: 0.001ms !important;
+                }
             }
             .chain-controls {
                 display: flex;
@@ -1097,6 +1216,13 @@
                             <option value="2">Pattern 3</option>
                             <option value="3">Pattern 4</option>
                         </select>
+                    </div>
+                    <div class="spc-toolbar" title="Authentic S-DSP voice backend">
+                        <span class="spc-led" id="spc-status">SPC700 · WARMING</span>
+                        <label>VOL <input type="range" id="spc-master" min="0" max="1" step="0.05" value="0.85" /></label>
+                        <label>ADSR <input type="range" id="spc-adsr" min="0" max="7" step="1" value="4" /></label>
+                        <label>ECHO <input type="range" id="spc-echo" min="0" max="0.75" step="0.05" value="0.2" /></label>
+                        <button class="btn" id="btn-spc-reset" title="Reset the SPC700 voice RAM and reload patches">RESET</button>
                     </div>
                     <div class="workflow-toolbar">
                         <span
@@ -1389,6 +1515,7 @@
             </div>
         </div>
 
+        <script src="spc-runtime.js"></script>
         <script>
             // --- SOUND LIBRARY DATA (SMW, POKEMON, FF III) & DLC PACKS ---
             const soundLibraryKits = {
@@ -1611,6 +1738,11 @@
                 bpm: 120,
                 lpf: 3200,
                 dist: 15,
+                spc: {
+                    master: 0.85,
+                    adsr: 4,
+                    echo: 0.2,
+                },
                 tracks: [
                     {
                         id: "kick",
@@ -2099,6 +2231,526 @@
             state.songTimeline[0][0] = true;
 
             // --- AUDIO ENGINE ---
+            const SPC_DSP = Object.freeze({
+                MVOLL: 0x0c,
+                MVOLR: 0x1c,
+                EVOLL: 0x2c,
+                EVOLR: 0x3c,
+                KON: 0x4c,
+                KOFF: 0x5c,
+                DIR: 0x5d,
+                EFB: 0x0d,
+                EON: 0x4d,
+                ESA: 0x6d,
+                EDL: 0x7d,
+                FLG: 0x6c,
+                voice(index) {
+                    return index * 0x10;
+                },
+            });
+
+            class Spc700Bus {
+                constructor(ctx, destination, callbacks = {}) {
+                    this.ctx = ctx;
+                    this.destination = destination;
+                    this.onStatus = callbacks.onStatus || (() => {});
+                    this.onVoice = callbacks.onVoice || (() => {});
+                    this.runtime = null;
+                    this.worklet = null;
+                    this.ready = false;
+                    this.loading = true;
+                    this.disabled = false;
+                    this.events = [];
+                    this.waitingTriggers = [];
+                    this.pendingSamples = new Map();
+                    this.unsupportedSamples = new Set();
+                    this.sampleSlots = new Map();
+                    this.nextSlot = 0;
+                    this.nextSampleAddress = 0x0600;
+                    this.directoryAddress = 0x0200;
+                    this.renderCursor = 0;
+                    this.renderTimer = null;
+                    this.queueSamples = 0;
+                    this.initialize();
+                }
+
+                async initialize() {
+                    try {
+                        if (!window.AudioWorkletNode || !this.ctx.audioWorklet) {
+                            throw new Error("AudioWorklet is not available in this browser.");
+                        }
+                        if (!window.SpcDspRuntime) {
+                            throw new Error("SPC700 runtime loader is missing.");
+                        }
+
+                        await this.ctx.audioWorklet.addModule(
+                            new URL("spc-audio-worklet.js", document.baseURI).href,
+                        );
+                        this.worklet = new AudioWorkletNode(
+                            this.ctx,
+                            "spc-pcm-output",
+                            {
+                                numberOfInputs: 0,
+                                numberOfOutputs: 1,
+                                outputChannelCount: [2],
+                            },
+                        );
+                        this.worklet.connect(this.destination);
+                        this.worklet.port.onmessage = ({ data }) => {
+                            if (data?.type === "queue-state") {
+                                this.queueSamples = data.queuedSamples || 0;
+                            }
+                        };
+
+                        this.runtime = new window.SpcDspRuntime();
+                        await this.runtime.initialize();
+                        this.resetCore();
+                        this.ready = true;
+                        this.loading = false;
+                        this.renderCursor = this.ctx.currentTime + 0.05;
+                        this.renderTimer = window.setInterval(
+                            () => this.renderAhead(),
+                            20,
+                        );
+                        this.onStatus("SPC700 · READY · 8 VOICES", true);
+
+                        const queued = this.waitingTriggers.splice(0);
+                        queued.forEach((event) => this.queueTrigger(event));
+                        this.renderAhead();
+                    } catch (error) {
+                        this.loading = false;
+                        this.disabled = true;
+                        console.warn("SPC700 initialization failed:", error);
+                        this.onStatus("SPC700 · FALLBACK", false);
+                    }
+                }
+
+                resetCore() {
+                    this.runtime.reset();
+                    this.events = [];
+                    this.sampleSlots.clear();
+                    this.nextSlot = 0;
+                    this.nextSampleAddress = 0x0600;
+                    this.configureGlobal();
+                    this.pendingSamples.forEach((buffer, id) => {
+                        try {
+                            this.installSample(id, this.audioBufferToPcm(buffer), false);
+                        } catch (error) {
+                            this.pendingSamples.delete(id);
+                            this.unsupportedSamples.add(id);
+                            this.onStatus("SPC700 · LONG SAMPLE · LEGACY", false);
+                        }
+                    });
+                }
+
+                configureGlobal() {
+                    const settings = state.spc || {};
+                    const master = Math.round(
+                        Math.max(0, Math.min(1, Number(settings.master ?? 0.85))) *
+                            0x7f,
+                    );
+                    const echo = Math.round(
+                        Math.max(0, Math.min(0.75, Number(settings.echo ?? 0.2))) *
+                            0x7f,
+                    );
+                    this.runtime.writeDsp(SPC_DSP.DIR, this.directoryAddress >> 8);
+                    this.runtime.writeDsp(SPC_DSP.MVOLL, master);
+                    this.runtime.writeDsp(SPC_DSP.MVOLR, master);
+                    this.runtime.writeDsp(SPC_DSP.ESA, 0xd0);
+                    this.runtime.writeDsp(SPC_DSP.EDL, echo ? 1 : 0);
+                    this.runtime.writeDsp(SPC_DSP.EFB, echo);
+                    this.runtime.writeDsp(SPC_DSP.EVOLL, echo);
+                    this.runtime.writeDsp(SPC_DSP.EVOLR, echo);
+                    this.runtime.writeDsp(SPC_DSP.EON, echo ? 0xff : 0);
+                    this.runtime.writeDsp(SPC_DSP.FLG, 0);
+                    [0, 0, 0, 0, 0x7f, 0, 0, 0].forEach((value, index) =>
+                        this.runtime.writeDsp(0x0f + index * 0x10, value),
+                    );
+                }
+
+                updateSettings() {
+                    if (this.ready) this.configureGlobal();
+                }
+
+                reset() {
+                    if (!this.ready) return;
+                    this.worklet?.port.postMessage({ type: "clear" });
+                    this.resetCore();
+                    this.renderCursor = this.ctx.currentTime + 0.05;
+                    this.onStatus("SPC700 · RESET", true);
+                }
+
+                queueTrigger(event) {
+                    if (this.disabled) return false;
+                    if (!this.ready) {
+                        this.waitingTriggers.push(event);
+                        return true;
+                    }
+
+                    const soonest = Math.max(
+                        this.ctx.currentTime + 0.012,
+                        this.renderCursor + 0.001,
+                    );
+                    const start = Math.max(
+                        soonest,
+                        Number.isFinite(event.time) ? event.time : soonest,
+                    );
+                    const duration = Math.max(0.045, event.duration || 0.22);
+                    this.events.push(
+                        { ...event, type: "note-on", at: start },
+                        { type: "clear-kon", at: start + 0.004 },
+                        {
+                            type: "note-off",
+                            at: start + duration,
+                            voice: this.voiceForTrack(event.trackId),
+                        },
+                        {
+                            type: "clear-koff",
+                            at: start + duration + 0.004,
+                        },
+                    );
+                    this.events.sort((a, b) => a.at - b.at);
+                    this.renderAhead();
+                    return true;
+                }
+
+                renderAhead() {
+                    if (!this.ready || !this.runtime || !this.worklet) return;
+                    const now = this.ctx.currentTime;
+                    if (this.renderCursor < now + 0.015) {
+                        this.worklet.port.postMessage({ type: "clear" });
+                        this.renderCursor = now + 0.04;
+                    }
+                    // Keep the PCM queue below the sequencer's 220 ms look-ahead
+                    // window so scheduled events land before their audio is rendered.
+                    const horizon = now + 0.09;
+                    while (this.renderCursor < horizon - 0.0005) {
+                        const next = this.events[0];
+                        if (next && next.at <= this.renderCursor + 0.0005) {
+                            this.events.shift();
+                            this.applyEvent(next);
+                            continue;
+                        }
+
+                        const target = next
+                            ? Math.min(next.at, horizon)
+                            : horizon;
+                        this.renderForSeconds(
+                            Math.max(0.001, target - this.renderCursor),
+                        );
+                    }
+                }
+
+                renderForSeconds(seconds) {
+                    const dspFrames = Math.max(1, Math.ceil(seconds * 32000));
+                    const pcm = this.runtime.runFrames(dspFrames);
+                    const outputFrames = Math.max(
+                        1,
+                        Math.round(seconds * this.ctx.sampleRate),
+                    );
+                    const output = this.resampleStereo(pcm, outputFrames);
+                    this.worklet.port.postMessage(
+                        { type: "enqueue", frames: output },
+                        [output.buffer],
+                    );
+                    this.renderCursor += seconds;
+                }
+
+                resampleStereo(source, outputFrames) {
+                    const sourceFrames = Math.max(1, source.length / 2);
+                    const output = new Float32Array(outputFrames * 2);
+                    for (let frame = 0; frame < outputFrames; frame += 1) {
+                        const position =
+                            (frame * (sourceFrames - 1)) /
+                            Math.max(1, outputFrames - 1);
+                        const lower = Math.floor(position);
+                        const upper = Math.min(sourceFrames - 1, lower + 1);
+                        const blend = position - lower;
+                        output[frame * 2] =
+                            source[lower * 2] * (1 - blend) +
+                            source[upper * 2] * blend;
+                        output[frame * 2 + 1] =
+                            source[lower * 2 + 1] * (1 - blend) +
+                            source[upper * 2 + 1] * blend;
+                    }
+                    return output;
+                }
+
+                applyEvent(event) {
+                    if (event.type === "clear-kon") {
+                        this.runtime.writeDsp(SPC_DSP.KON, 0);
+                        return;
+                    }
+                    if (event.type === "clear-koff") {
+                        this.runtime.writeDsp(SPC_DSP.KOFF, 0);
+                        return;
+                    }
+                    if (event.type === "note-off") {
+                        this.runtime.writeDsp(SPC_DSP.KOFF, 1 << event.voice);
+                        return;
+                    }
+
+                    const voice = this.voiceForTrack(event.trackId);
+                    const params = event.params || {};
+                    const sampleKey = event.sampleBuffer
+                        ? event.trackId
+                        : event.soundId || event.trackId;
+                    let slot;
+                    try {
+                        slot = this.ensureSample(
+                            sampleKey,
+                            event.sampleBuffer,
+                            Number(params.duty || 0),
+                        );
+                    } catch (error) {
+                        this.onStatus("SPC700 · SAMPLE TOO LARGE", false);
+                        console.warn("SPC700 sample import:", error);
+                        return;
+                    }
+
+                    const base = SPC_DSP.voice(voice);
+                    const mixVolume = Math.max(
+                        0,
+                        Math.min(
+                            1,
+                            Number(event.volume ?? 0.7) *
+                                Math.max(0, 1 + Number(params.volume || 0)),
+                        ),
+                    );
+                    const pan = Math.max(-1, Math.min(1, Number(event.pan || 0)));
+                    const left = Math.round(
+                        0x7f * mixVolume * (pan > 0 ? 1 - pan : 1),
+                    );
+                    const right = Math.round(
+                        0x7f * mixVolume * (pan < 0 ? 1 + pan : 1),
+                    );
+                    const pitch = Math.max(
+                        1,
+                        Math.min(
+                            0x3fff,
+                            Math.round(
+                                0x1000 *
+                                    Number(event.pitch || 1),
+                            ),
+                        ),
+                    );
+                    const adsr = Math.max(
+                        0,
+                        Math.min(7, Number((state.spc || {}).adsr ?? 4)),
+                    );
+
+                    this.runtime.writeDsp(base + 0x00, left);
+                    this.runtime.writeDsp(base + 0x01, right);
+                    this.runtime.writeDsp(base + 0x02, pitch & 0xff);
+                    this.runtime.writeDsp(base + 0x03, (pitch >> 8) & 0x3f);
+                    this.runtime.writeDsp(base + 0x04, slot);
+                    this.runtime.writeDsp(base + 0x05, 0x80 | (adsr << 4) | 0x0f);
+                    this.runtime.writeDsp(base + 0x06, 0x8c);
+                    this.runtime.writeDsp(base + 0x07, 0);
+                    this.runtime.writeDsp(SPC_DSP.KOFF, 0);
+                    this.runtime.writeDsp(SPC_DSP.KON, 1 << voice);
+                    this.onVoice(event.trackId);
+                }
+
+                voiceForTrack(trackId) {
+                    const index = Math.max(
+                        0,
+                        state.tracks.findIndex((track) => track.id === trackId),
+                    );
+                    return index % 8;
+                }
+
+                ensureSample(key, audioBuffer, duty) {
+                    const variantKey =
+                        audioBuffer || this.pendingSamples.has(key)
+                            ? key
+                            : `${key}|${duty}`;
+                    if (this.sampleSlots.has(variantKey)) {
+                        return this.sampleSlots.get(variantKey);
+                    }
+                    const pcm = audioBuffer
+                        ? this.audioBufferToPcm(audioBuffer)
+                        : this.pendingSamples.has(key)
+                          ? this.audioBufferToPcm(this.pendingSamples.get(key))
+                          : this.createBuiltinPcm(key, duty);
+                    return this.installSample(
+                        variantKey,
+                        pcm,
+                        !audioBuffer && !this.pendingSamples.has(key),
+                    );
+                }
+
+                registerSample(id, audioBuffer) {
+                    this.pendingSamples.set(id, audioBuffer);
+                    if (!this.ready) return true;
+                    try {
+                        this.installSample(id, this.audioBufferToPcm(audioBuffer), false);
+                        this.unsupportedSamples.delete(id);
+                        return true;
+                    } catch (error) {
+                        this.pendingSamples.delete(id);
+                        this.unsupportedSamples.add(id);
+                        this.onStatus("SPC700 · LONG SAMPLE · LEGACY", false);
+                        return false;
+                    }
+                }
+
+                canUseCustomSample(id) {
+                    return !this.unsupportedSamples.has(id);
+                }
+
+                installSample(key, pcm, loop) {
+                    if (this.sampleSlots.has(key)) return this.sampleSlots.get(key);
+                    if (this.nextSlot >= 0xff) {
+                        throw new Error("All 255 SPC sample slots are in use.");
+                    }
+                    const encoded = this.encodeBrr(pcm, loop);
+                    if (this.nextSampleAddress + encoded.length >= 0xd000) {
+                        throw new Error("Sample cannot fit in SPC700 APU RAM.");
+                    }
+                    const slot = this.nextSlot++;
+                    const address = this.nextSampleAddress;
+                    this.runtime.writeRam(address, encoded);
+                    this.runtime.writeRam(
+                        this.directoryAddress + slot * 4,
+                        new Uint8Array([
+                            address & 0xff,
+                            (address >> 8) & 0xff,
+                            address & 0xff,
+                            (address >> 8) & 0xff,
+                        ]),
+                    );
+                    this.nextSampleAddress += encoded.length;
+                    this.sampleSlots.set(key, slot);
+                    return slot;
+                }
+
+                encodeBrr(pcm, loop) {
+                    const frames = Math.max(16, Math.ceil(pcm.length / 16) * 16);
+                    const encoded = new Uint8Array((frames / 16) * 9);
+                    for (let block = 0; block < frames / 16; block += 1) {
+                        const start = block * 16;
+                        let peak = 1;
+                        for (let index = 0; index < 16; index += 1) {
+                            peak = Math.max(
+                                peak,
+                                Math.abs(Math.round((pcm[start + index] || 0) * 16384)),
+                            );
+                        }
+                        let range = 0;
+                        while (range < 12 && peak > 7 * (1 << range)) range += 1;
+                        const offset = block * 9;
+                        encoded[offset] =
+                            (range << 4) |
+                            (block === frames / 16 - 1 ? (loop ? 0x03 : 0x01) : 0);
+                        for (let pair = 0; pair < 8; pair += 1) {
+                            const first = Math.max(
+                                -8,
+                                Math.min(
+                                    7,
+                                    Math.round(
+                                        ((pcm[start + pair * 2] || 0) * 16384) /
+                                            (1 << range),
+                                    ),
+                                ),
+                            );
+                            const second = Math.max(
+                                -8,
+                                Math.min(
+                                    7,
+                                    Math.round(
+                                        ((pcm[start + pair * 2 + 1] || 0) * 16384) /
+                                            (1 << range),
+                                    ),
+                                ),
+                            );
+                            encoded[offset + 1 + pair] =
+                                ((first & 0x0f) << 4) | (second & 0x0f);
+                        }
+                    }
+                    return encoded;
+                }
+
+                audioBufferToPcm(buffer) {
+                    const targetFrames = Math.max(
+                        16,
+                        Math.ceil(buffer.duration * 32000),
+                    );
+                    const availableFrames =
+                        Math.floor(
+                            Math.max(0, 0xd000 - this.nextSampleAddress) / 9,
+                        ) * 16;
+                    if (targetFrames > availableFrames) {
+                        throw new Error(
+                            `Sample needs ${(targetFrames / 32000).toFixed(2)}s but only ${(availableFrames / 32000).toFixed(2)}s of SPC APU RAM remains.`,
+                        );
+                    }
+                    const output = new Float32Array(targetFrames);
+                    const left = buffer.getChannelData(0);
+                    const right =
+                        buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+                    for (let frame = 0; frame < targetFrames; frame += 1) {
+                        const source = Math.min(
+                            left.length - 1,
+                            Math.floor((frame / targetFrames) * left.length),
+                        );
+                        output[frame] = (left[source] + right[source]) * 0.5;
+                    }
+                    return output;
+                }
+
+                createBuiltinPcm(key, duty = 0) {
+                    const lower = String(key).toLowerCase();
+                    const noise =
+                        lower.includes("snare") ||
+                        lower.includes("hat") ||
+                        lower.includes("noise") ||
+                        lower.includes("glitch") ||
+                        lower.includes("dash");
+                    const drum =
+                        lower.includes("kick") ||
+                        lower.includes("drum") ||
+                        lower.includes("bongo") ||
+                        lower.includes("stomp");
+                    const length = noise || drum ? 2048 : 512;
+                    const output = new Float32Array(length);
+                    let seed = [...lower].reduce(
+                        (value, char) => (value * 33 + char.charCodeAt(0)) >>> 0,
+                        5381,
+                    );
+                    const random = () => {
+                        seed = (seed * 1664525 + 1013904223) >>> 0;
+                        return seed / 0xffffffff;
+                    };
+                    for (let index = 0; index < length; index += 1) {
+                        const phase = (index / length) * Math.PI * 2;
+                        const decay = Math.exp((-index / length) * (drum ? 7 : 3));
+                        if (noise) {
+                            output[index] = (random() * 2 - 1) * decay * 0.8;
+                        } else if (drum) {
+                            output[index] =
+                                Math.sin(phase * (4 - index / length * 3.2)) *
+                                decay *
+                                0.9;
+                        } else if (lower.includes("bass")) {
+                            output[index] = ((phase % (Math.PI * 2)) / Math.PI - 1) * 0.7;
+                        } else {
+                            const harmonics = 1 + Number(duty || 0);
+                            output[index] =
+                                Math.sin(phase * harmonics) * 0.62 +
+                                Math.sin(phase * (harmonics + 1)) * 0.14;
+                        }
+                    }
+                    return output;
+                }
+
+                dispose() {
+                    if (this.renderTimer) window.clearInterval(this.renderTimer);
+                    this.worklet?.disconnect();
+                    this.runtime?.dispose();
+                }
+            }
+
             class AudioEngine {
                 constructor() {
                     this.ctx = new (window.AudioContext ||
@@ -2124,6 +2776,17 @@
                     this.channels = {};
                     state.tracks.forEach((t) => this.initChannelNode(t.id));
                     this.updateFX();
+                    this.spc = new Spc700Bus(this.ctx, this.distortion, {
+                        onStatus: (message, ready) => {
+                            const label = document.getElementById("spc-status");
+                            if (label) {
+                                label.innerText = message;
+                                label.classList.toggle("ready", !!ready);
+                            }
+                            setWorkflowStatus(message);
+                        },
+                        onVoice: (trackId) => this.flashVoice(trackId),
+                    });
                 }
 
                 initChannelNode(id) {
@@ -2156,6 +2819,27 @@
                     if (type === "vol") this.channels[id].gain.gain.value = val;
                     if (type === "pan") this.channels[id].pan.pan.value = val;
                 }
+                updateSpcSettings() {
+                    this.spc?.updateSettings();
+                }
+                resetSpc() {
+                    this.spc?.reset();
+                }
+                registerCustomSample(id, buffer) {
+                    this.spc?.registerSample(id, buffer);
+                }
+                flashVoice(trackId) {
+                    const row = document.querySelector(
+                        `.track-row[data-track-id="${CSS.escape(trackId)}"]`,
+                    );
+                    if (!row) return;
+                    row.classList.remove("voice-active");
+                    requestAnimationFrame(() => row.classList.add("voice-active"));
+                    window.setTimeout(
+                        () => row.classList.remove("voice-active"),
+                        150,
+                    );
+                }
 
                 trigger(sound, time, pitchMod = 1, triggerParams = null) {
                     if (this.ctx.state === "suspended") this.ctx.resume();
@@ -2164,6 +2848,28 @@
                     const channelDest = this.channels[sound].pan;
                     const params = triggerParams || {};
                     pitchMod *= Math.pow(2, Number(params.pitch || 0) / 12);
+                    const track = state.tracks.find(
+                        (track) => track.id === sound,
+                    );
+                    const soundId = (track && track.soundId) || sound;
+                    if (
+                        this.spc &&
+                        !this.spc.disabled &&
+                        (!customAudioBuffers[sound] ||
+                            this.spc.canUseCustomSample(sound))
+                    ) {
+                        this.spc.queueTrigger({
+                            trackId: sound,
+                            soundId,
+                            time: t,
+                            pitch: pitchMod,
+                            params,
+                            volume: track ? track.vol : 0.7,
+                            pan: track ? track.pan : 0,
+                            sampleBuffer: customAudioBuffers[sound] || null,
+                        });
+                        return;
+                    }
                     let dest = channelDest;
                     if (Number(params.volume || 0) !== 0) {
                         const triggerGain = this.ctx.createGain();
@@ -2186,11 +2892,6 @@
 
                     // Library/DLC channels use a generated channel id, so resolve the
                     // original sound id before selecting its synthesized voice.
-                    const track = state.tracks.find(
-                        (track) => track.id === sound,
-                    );
-                    const soundId = (track && track.soundId) || sound;
-
                     // Synthesized sounds including Library Sound Kits & DLC Packs
                     switch (soundId) {
                         case "mario_coin":
@@ -2989,6 +3690,7 @@
                 state.tracks.forEach((track) => {
                     let row = document.createElement("div");
                     row.className = "track-row";
+                    row.dataset.trackId = track.id;
 
                     let info = document.createElement("div");
                     info.className = "track-info";
@@ -3317,7 +4019,9 @@
 
             // --- SCHEDULER & PLAYHEAD UPDATER ---
             function scheduler() {
-                while (nextNoteTime < audio.ctx.currentTime + 0.1) {
+                const lookAhead =
+                    audio?.spc && !audio.spc.disabled ? 0.22 : 0.1;
+                while (nextNoteTime < audio.ctx.currentTime + lookAhead) {
                     scheduleStep(currentStep, currentBlock, nextNoteTime);
                     advanceNote();
                 }
@@ -3498,7 +4202,9 @@
                 if (isPlaying) {
                     currentStep = 0;
                     if (!isSongMode) currentBlock = 0;
-                    nextNoteTime = audio.ctx.currentTime + 0.05;
+                    nextNoteTime =
+                        audio.ctx.currentTime +
+                        (audio.spc && !audio.spc.disabled ? 0.12 : 0.05);
                     scheduler();
                     btn.classList.add("active");
                     btn.innerHTML =
@@ -3554,6 +4260,7 @@
                                 );
 
                             customAudioBuffers[customId] = buffer;
+                            audio.registerCustomSample(customId, buffer);
 
                             state.tracks.push({
                                 id: customId,
@@ -3841,6 +4548,18 @@
             bindKnob("bpm", "bpm");
             bindKnob("lpf", "lpf", "Hz", true);
             bindKnob("dist", "dist", "%", true);
+            ["master", "adsr", "echo"].forEach((key) => {
+                const input = document.getElementById(`spc-${key}`);
+                input.oninput = (e) => {
+                    state.spc = state.spc || {};
+                    state.spc[key] = Number(e.target.value);
+                    if (audio) audio.updateSpcSettings();
+                };
+            });
+            document.getElementById("btn-spc-reset").onclick = () => {
+                if (!audio) audio = new AudioEngine();
+                audio.resetSpc();
+            };
 
             document.getElementById("sel-pattern").onchange = (e) => {
                 queuePattern(parseInt(e.target.value));
@@ -3905,6 +4624,12 @@
                             key: 0,
                             scale: "chromatic",
                         };
+                        state.spc = {
+                            master: 0.85,
+                            adsr: 4,
+                            echo: 0.2,
+                            ...(state.spc || {}),
+                        };
                         ensurePatternData();
                         document.documentElement.setAttribute(
                             "data-theme",
@@ -3920,6 +4645,12 @@
                         document.getElementById("sl-dist").value = state.dist;
                         document.getElementById("val-dist").innerText =
                             state.dist + "%";
+                        document.getElementById("spc-master").value =
+                            state.spc.master;
+                        document.getElementById("spc-adsr").value =
+                            state.spc.adsr;
+                        document.getElementById("spc-echo").value =
+                            state.spc.echo;
                         updatePatternDropdown();
                         document.getElementById("note-key").value =
                             state.noteSettings.key || 0;
@@ -3927,6 +4658,7 @@
                             state.noteSettings.scale || "chromatic";
                         if (audio) {
                             audio.updateFX();
+                            audio.updateSpcSettings();
                             state.tracks.forEach((t) => {
                                 audio.updateMix(t.id, "vol", t.vol);
                                 audio.updateMix(t.id, "pan", t.pan);
@@ -3944,6 +4676,20 @@
             updatePatternDropdown();
             renderTimeline();
             renderRack();
+            document.addEventListener(
+                "pointermove",
+                (event) => {
+                    document.body.style.setProperty(
+                        "--pointer-x",
+                        `${event.clientX}px`,
+                    );
+                    document.body.style.setProperty(
+                        "--pointer-y",
+                        `${event.clientY}px`,
+                    );
+                },
+                { passive: true },
+            );
         </script>
     </body>
 </html>
