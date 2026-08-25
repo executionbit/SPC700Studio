@@ -17,7 +17,7 @@ const {
     findEntitlement,
     getStripeCustomerId,
     saveStripeCustomerId,
-    markStripeEvent,
+    processStripeEntitlement,
 } = require("./db");
 const {
     getUncachableStripeClient,
@@ -72,10 +72,10 @@ async function handleStripeEvent(event) {
         console.warn("Ignoring invalid DLC checkout metadata.");
         return;
     }
-    await grantEntitlement({
+    return processStripeEntitlement({
+        eventId: event.id,
         userId,
         packId,
-        source: "stripe",
         checkoutSessionId: session.id,
         paymentIntentId:
             typeof session.payment_intent === "string"
@@ -98,11 +98,7 @@ app.post(
                 Array.isArray(signature) ? signature[0] : signature,
             );
             const event = JSON.parse(req.body.toString("utf8"));
-            await handleStripeEvent(event);
-            // Record only after entitlement persistence succeeds. If the grant
-            // fails, Stripe can retry instead of losing a paid pack behind an
-            // already-recorded event. The entitlement insert is idempotent.
-            const firstProcessing = await markStripeEvent(event.id);
+            const firstProcessing = await handleStripeEvent(event);
             res.json({ received: true, duplicate: !firstProcessing });
         } catch (error) {
             console.error("Stripe webhook rejected:", error.message);

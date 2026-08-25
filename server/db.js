@@ -87,6 +87,45 @@ async function markStripeEvent(eventId) {
     return result.rowCount === 1;
 }
 
+async function processStripeEntitlement({
+    eventId,
+    userId,
+    packId,
+    checkoutSessionId = null,
+    paymentIntentId = null,
+}) {
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const eventResult = await client.query(
+            `INSERT INTO processed_stripe_events (id)
+             VALUES ($1)
+             ON CONFLICT (id) DO NOTHING
+             RETURNING id`,
+            [eventId],
+        );
+        if (eventResult.rowCount === 0) {
+            await client.query("COMMIT");
+            return false;
+        }
+
+        await client.query(
+            `INSERT INTO dlc_entitlements
+               (user_id, pack_id, source, stripe_checkout_session_id, stripe_payment_intent_id)
+             VALUES ($1, $2, 'stripe', $3, $4)
+             ON CONFLICT (user_id, pack_id) DO NOTHING`,
+            [userId, packId, checkoutSessionId, paymentIntentId],
+        );
+        await client.query("COMMIT");
+        return true;
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
 module.exports = {
     pool,
     ensureUser,
@@ -97,4 +136,5 @@ module.exports = {
     getStripeCustomerId,
     saveStripeCustomerId,
     markStripeEvent,
+    processStripeEntitlement,
 };
