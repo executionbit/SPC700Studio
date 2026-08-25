@@ -98,8 +98,12 @@ app.post(
                 Array.isArray(signature) ? signature[0] : signature,
             );
             const event = JSON.parse(req.body.toString("utf8"));
-            if (await markStripeEvent(event.id)) await handleStripeEvent(event);
-            res.json({ received: true });
+            await handleStripeEvent(event);
+            // Record only after entitlement persistence succeeds. If the grant
+            // fails, Stripe can retry instead of losing a paid pack behind an
+            // already-recorded event. The entitlement insert is idempotent.
+            const firstProcessing = await markStripeEvent(event.id);
+            res.json({ received: true, duplicate: !firstProcessing });
         } catch (error) {
             console.error("Stripe webhook rejected:", error.message);
             res.status(400).json({ error: "Webhook verification failed." });
@@ -231,6 +235,10 @@ app.post("/api/checkout/confirm", requireAuth, async (req, res) => {
         ) {
             return res.status(403).json({ error: "Checkout is not verified." });
         }
+        // The checkout endpoint normally creates this row, but keeping
+        // confirmation self-contained makes a successful return safe across
+        // retries, delayed redirects, and accounts created in another tab.
+        await ensureUser(req.userId);
         await grantEntitlement({
             userId: req.userId,
             packId,

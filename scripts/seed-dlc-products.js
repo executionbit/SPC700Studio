@@ -34,6 +34,17 @@ async function seedDlcProducts() {
                 currency: "usd",
                 metadata: { dlc_pack_id: pack.id },
             }));
+        if (
+            product.metadata?.dlc_pack_id !== pack.id ||
+            price.metadata?.dlc_pack_id !== pack.id ||
+            price.unit_amount !== pack.priceCents ||
+            price.currency !== "usd" ||
+            price.type !== "one_time"
+        ) {
+            throw new Error(
+                `${pack.id}: Stripe product or price metadata/amount is invalid.`,
+            );
+        }
         console.log(`${pack.id}: ${product.id} / ${price.id}`);
     }
 }

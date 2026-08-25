@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "seed:dlc": "node scripts/seed-dlc-products.js",
-    "test": "node --check server/index.js && node --check server/db.js && node --check server/stripe-client.js && node --check scripts/seed-dlc-products.js && node scripts/audio-smoke-test.js"
+    "test": "node --check server/index.js && node --check server/db.js && node --check server/stripe-client.js && node --check scripts/seed-dlc-products.js && node scripts/audio-smoke-test.js && node scripts/dlc-catalog-test.js"
   },
   "keywords": [],
   "author": "",
