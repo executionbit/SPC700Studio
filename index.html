@@ -1524,6 +1524,34 @@
             </div>
         </div>
 
+        <div class="modal-overlay" id="channel-fx-modal">
+            <div class="modal-content" style="max-width: 430px">
+                <div class="panel-header">
+                    <span>CHANNEL FX · <span id="fx-track-name">CHANNEL</span></span>
+                    <button class="icon-btn-close" id="btn-close-channel-fx" title="Close">✕</button>
+                </div>
+                <div class="modal-scroll-area">
+                    <p class="chain-help">
+                        S-DSP hardware controls. Echo is a voice echo-send, white noise
+                        uses the DSP noise generator, and pitch modulation uses the
+                        preceding hardware voice as its modulation source.
+                    </p>
+                    <div class="workflow-toolbar" style="display:grid; grid-template-columns: 80px 1fr 38px; gap:10px; align-items:center">
+                        <strong>ECHO</strong>
+                        <input id="fx-echo" type="range" min="0" max="1" step="0.05" value="0" />
+                        <output id="fx-echo-value">0%</output>
+                        <strong>NOISE</strong>
+                        <input id="fx-noise" type="range" min="0" max="1" step="0.05" value="0" />
+                        <output id="fx-noise-value">0%</output>
+                        <strong>PITCH MOD</strong>
+                        <input id="fx-pitch-mod" type="range" min="0" max="1" step="0.05" value="0" />
+                        <output id="fx-pitch-mod-value">0%</output>
+                    </div>
+                    <button class="btn btn-play" id="btn-preview-channel-fx" style="margin-top:12px">PREVIEW FX</button>
+                </div>
+            </div>
+        </div>
+
         <!-- SONG TIMELINE & CLIP ARRANGER -->
         <div class="panel">
             <div class="panel-header">
@@ -2498,7 +2526,9 @@
                 KOFF: 0x5c,
                 DIR: 0x5d,
                 EFB: 0x0d,
+                PMON: 0x2d,
                 EON: 0x4d,
+                NON: 0x3d,
                 ESA: 0x6d,
                 EDL: 0x7d,
                 FLG: 0x6c,
@@ -2529,6 +2559,9 @@
                     this.renderCursor = 0;
                     this.renderTimer = null;
                     this.queueSamples = 0;
+                    this.echoMask = 0;
+                    this.noiseMask = 0;
+                    this.pitchModMask = 0;
                     this.initialize();
                 }
 
@@ -2589,6 +2622,9 @@
                     this.sampleSlots.clear();
                     this.nextSlot = 0;
                     this.nextSampleAddress = 0x0600;
+                    this.echoMask = 0;
+                    this.noiseMask = 0;
+                    this.pitchModMask = 0;
                     this.configureGlobal();
                     this.pendingSamples.forEach((buffer, id) => {
                         try {
@@ -2619,8 +2655,16 @@
                     this.runtime.writeDsp(SPC_DSP.EFB, echo);
                     this.runtime.writeDsp(SPC_DSP.EVOLL, echo);
                     this.runtime.writeDsp(SPC_DSP.EVOLR, echo);
-                    this.runtime.writeDsp(SPC_DSP.EON, echo ? 0xff : 0);
-                    this.runtime.writeDsp(SPC_DSP.FLG, 0);
+                    this.runtime.writeDsp(
+                        SPC_DSP.EON,
+                        echo ? this.echoMask : 0,
+                    );
+                    this.runtime.writeDsp(SPC_DSP.NON, this.noiseMask);
+                    this.runtime.writeDsp(SPC_DSP.PMON, this.pitchModMask);
+                    this.runtime.writeDsp(
+                        SPC_DSP.FLG,
+                        this.noiseMask ? 0x1f : 0,
+                    );
                     [0, 0, 0, 0, 0x7f, 0, 0, 0].forEach((value, index) =>
                         this.runtime.writeDsp(0x0f + index * 0x10, value),
                     );
@@ -2772,6 +2816,28 @@
                     }
 
                     const base = SPC_DSP.voice(voice);
+                    const fx = event.fx || {};
+                    const bit = 1 << voice;
+                    this.echoMask =
+                        Number(fx.echo || 0) > 0 ? this.echoMask | bit : this.echoMask & ~bit;
+                    this.noiseMask =
+                        Number(fx.noise || 0) > 0 ? this.noiseMask | bit : this.noiseMask & ~bit;
+                    this.pitchModMask =
+                        Number(fx.pitchMod || 0) > 0
+                            ? this.pitchModMask | bit
+                            : this.pitchModMask & ~bit;
+                    this.runtime.writeDsp(
+                        SPC_DSP.EON,
+                        Number((state.spc || {}).echo || 0) > 0 ? this.echoMask : 0,
+                    );
+                    this.runtime.writeDsp(SPC_DSP.NON, this.noiseMask);
+                    this.runtime.writeDsp(SPC_DSP.PMON, this.pitchModMask);
+                    this.runtime.writeDsp(
+                        SPC_DSP.FLG,
+                        this.noiseMask
+                            ? Math.round(Math.max(0, Math.min(1, Number(fx.noise || 0))) * 31)
+                            : 0,
+                    );
                     const mixVolume = Math.max(
                         0,
                         Math.min(
@@ -3222,6 +3288,7 @@
                             volume: track ? track.vol : 0.7,
                             pan: track ? track.pan : 0,
                             sampleBuffer: customAudioBuffers[sound] || null,
+                            fx: track?.fx || null,
                         });
                         return;
                     }
@@ -4068,6 +4135,50 @@
                 });
             }
 
+            let activeFxTrackId = null;
+
+            function openChannelFxModal(track) {
+                activeFxTrackId = track.id;
+                track.fx = {
+                    echo: 0,
+                    noise: 0,
+                    pitchMod: 0,
+                    ...(track.fx || {}),
+                };
+                document.getElementById("fx-track-name").innerText = track.name;
+                const controls = [
+                    ["echo", "fx-echo"],
+                    ["noise", "fx-noise"],
+                    ["pitchMod", "fx-pitch-mod"],
+                ];
+                controls.forEach(([key, id]) => {
+                    const input = document.getElementById(id);
+                    const output = document.getElementById(`${id}-value`);
+                    input.value = track.fx[key];
+                    output.value = `${Math.round(track.fx[key] * 100)}%`;
+                });
+                document.getElementById("channel-fx-modal").classList.add("open");
+            }
+
+            function updateChannelFx(key, value) {
+                const track = state.tracks.find(
+                    (candidate) => candidate.id === activeFxTrackId,
+                );
+                if (!track) return;
+                track.fx = {
+                    echo: 0,
+                    noise: 0,
+                    pitchMod: 0,
+                    ...(track.fx || {}),
+                    [key]: Math.max(0, Math.min(1, Number(value) || 0)),
+                };
+                const inputId =
+                    key === "pitchMod" ? "fx-pitch-mod" : `fx-${key}`;
+                document.getElementById(`${inputId}-value`).value =
+                    `${Math.round(track.fx[key] * 100)}%`;
+                audio?.updateSpcSettings();
+            }
+
             function renderRack() {
                 ensurePatternData();
                 const c = document.getElementById("tracks-list");
@@ -4093,6 +4204,12 @@
                         .flatMap((pack) => pack.items),
                 ];
                 state.tracks.forEach((track) => {
+                    track.fx = {
+                        echo: 0,
+                        noise: 0,
+                        pitchMod: 0,
+                        ...(track.fx || {}),
+                    };
                     let row = document.createElement("div");
                     const missing = missingByTrackId.get(track.id);
                     row.className = `track-row${missing ? " needs-repair" : ""}`;
@@ -4112,6 +4229,7 @@
                 <div class="track-controls-inline">
                     <button class="track-btn-sm ${isMuted ? "muted" : ""}" data-mute-id="${track.id}" title="Toggle Mute">${isMuted ? "MUTED" : "MUTE"}</button>
                     <button class="track-btn-sm note-seq-btn" data-notes-id="${track.id}" title="Open Note Sequencer">NOTE</button>
+                    <button class="track-btn-sm" data-fx-id="${track.id}" title="Open S-DSP effects rack">FX</button>
                 </div>
             `;
 
@@ -4130,11 +4248,20 @@
                         openNoteSequencerModal(track);
                     };
 
+                    info.querySelector("[data-fx-id]").onclick = (e) => {
+                        e.stopPropagation();
+                        openChannelFxModal(track);
+                    };
+
                     info.querySelector(".track-name-clickable").onclick =
                         () => {
                             activeNoteSeqTech = track.id;
                             openNoteSequencerModal(track);
                         };
+                    info.querySelector(".track-name-clickable").ondblclick = (e) => {
+                        e.preventDefault();
+                        openChannelFxModal(track);
+                    };
 
                     let mix = document.createElement("div");
                     mix.className = "track-mix";
@@ -5027,6 +5154,24 @@
             document.getElementById("btn-paste-channel").onclick = pasteChannel;
             document.getElementById("btn-copy-trigger").onclick = copyTrigger;
             document.getElementById("btn-paste-trigger").onclick = pasteTrigger;
+            document.getElementById("btn-close-channel-fx").onclick = () =>
+                document.getElementById("channel-fx-modal").classList.remove("open");
+            [
+                ["fx-echo", "echo"],
+                ["fx-noise", "noise"],
+                ["fx-pitch-mod", "pitchMod"],
+            ].forEach(([id, key]) => {
+                document.getElementById(id).oninput = (event) =>
+                    updateChannelFx(key, event.target.value);
+            });
+            document.getElementById("btn-preview-channel-fx").onclick = () => {
+                const track = state.tracks.find(
+                    (candidate) => candidate.id === activeFxTrackId,
+                );
+                if (!track) return;
+                if (!audio) audio = new AudioEngine();
+                audio.trigger(track.id);
+            };
 
             document.getElementById("btn-save").onclick = () => {
                 const a = document.createElement("a");
@@ -5109,8 +5254,16 @@
                         }
                         await restoreCustomSamples(savedSamples);
                         state.tracks.forEach((track) => {
+                            if (
+                                !track.sampleRef &&
+                                String(track.id || "").startsWith("custom_")
+                            ) {
+                                track.sampleRef = track.id;
+                            }
                             if (track.sampleRef && !customAudioBuffers[track.sampleRef]) {
                                 track.sampleNeedsRepair = true;
+                            } else {
+                                track.sampleNeedsRepair = false;
                             }
                         });
                         renderTimeline();

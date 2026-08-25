@@ -44,6 +44,7 @@ for (const marker of [
     "customSamples",
     "sampleRef",
     "sampleNeedsRepair",
+    'startsWith("custom_")',
     "copyToChannel",
 ]) {
     if (!indexSource.includes(marker)) {
