@@ -2,7 +2,8 @@ entrypoint = "server/index.js"
 modules = ["web", "python-base-3.13", "nodejs-24", "postgresql-16"]
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "static"
+publicDir = "/"
 
 [workflows]
 runButton = "Project"
