@@ -1119,6 +1119,9 @@
                         </svg>
                         PLAY
                     </button>
+                    <button class="btn" id="btn-starters" title="Open starter beats">
+                        STARTER
+                    </button>
                     <button class="btn btn-rec" id="btn-export">
                         <svg class="v-icon" viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="6" fill="currentColor" />
@@ -1552,6 +1555,23 @@
             </div>
         </div>
 
+        <div class="modal-overlay" id="starter-modal">
+            <div class="modal-content" style="max-width: 620px">
+                <div class="panel-header">
+                    <span>INSTANT STARTER BEATS</span>
+                    <button class="icon-btn-close" id="btn-close-starters" title="Close">✕</button>
+                </div>
+                <div class="modal-scroll-area">
+                    <p class="chain-help">
+                        Pick an original playable sketch to hear the workstation immediately.
+                        Load replaces the current project after confirmation; Remix This makes
+                        a fresh editable copy labeled with its source.
+                    </p>
+                    <div id="starter-grid" class="lib-grid"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- SONG TIMELINE & CLIP ARRANGER -->
         <div class="panel">
             <div class="panel-header">
@@ -1980,6 +2000,103 @@
                     .map(() => Array(TL_BLOCKS).fill(false)),
                 noteSettings: { key: 0, scale: "chromatic" },
             };
+
+            const STARTER_TEMPLATES = [
+                {
+                    id: "neon-relay",
+                    name: "Neon Relay",
+                    description: "Bright drums, bouncing bass, and a compact lead hook.",
+                    bpm: 124,
+                    pattern: {
+                        kick: [0, 8, 16, 24],
+                        snare: [4, 12, 20, 28],
+                        hat: [2, 6, 10, 14, 18, 22, 26, 30],
+                        bass: [0, 3, 8, 11, 16, 19, 24, 27],
+                        lead: [2, 6, 10, 14, 18, 22, 26, 30],
+                    },
+                },
+                {
+                    id: "dusk-circuit",
+                    name: "Dusk Circuit",
+                    description: "A half-time pulse with clipped percussion and warm bass.",
+                    bpm: 96,
+                    pattern: {
+                        kick: [0, 6, 12, 16, 22, 28],
+                        snare: [8, 24],
+                        hat: [0, 4, 8, 12, 16, 20, 24, 28],
+                        bass: [0, 4, 6, 12, 16, 20, 22, 28],
+                        arp: [3, 7, 11, 15, 19, 23, 27, 31],
+                    },
+                },
+                {
+                    id: "glass-garden",
+                    name: "Glass Garden",
+                    description: "Sparse hats, soft chords, and a floating melodic texture.",
+                    bpm: 108,
+                    pattern: {
+                        kick: [0, 12, 16, 28],
+                        snare: [12, 28],
+                        hat: [3, 7, 11, 15, 19, 23, 27, 31],
+                        bass: [0, 8, 16, 24],
+                        lead: [3, 7, 15, 19, 27, 31],
+                        arp: [5, 13, 21, 29],
+                    },
+                },
+            ];
+
+            const STARTER_TRACKS = [
+                ["kick", "KICK", "#e52521", 0.8],
+                ["snare", "SNARE", "#f5d000", 0.7],
+                ["hat", "HIHAT", "#43b02a", 0.5],
+                ["glitch", "GLITCH", "#0099ff", 0.6],
+                ["bass", "BASS", "#7b1fa2", 0.8],
+                ["lead", "LEAD", "#0097a7", 0.6],
+                ["arp", "ARP FX", "#e65100", 0.6],
+                ["noise", "NOISE", "#5d4037", 0.5],
+            ];
+
+            function makeStarterProject(template) {
+                const tracks = STARTER_TRACKS.map(([id, name, color, vol]) => ({
+                    id,
+                    name,
+                    color,
+                    vol,
+                    pan: 0,
+                    stepsCount: TOTAL_STEPS,
+                    fx: { echo: 0, noise: 0, pitchMod: 0 },
+                }));
+                const pattern = {};
+                tracks.forEach((track) => {
+                    pattern[track.id] = Array(TOTAL_STEPS).fill(false);
+                });
+                Object.entries(template.pattern).forEach(([trackId, steps]) => {
+                    if (!pattern[trackId]) return;
+                    steps.forEach((step) => (pattern[trackId][step] = true));
+                });
+                return {
+                    theme: "sunrise",
+                    bpm: template.bpm,
+                    lpf: 3200,
+                    dist: 15,
+                    spc: { master: 0.85, adsr: 4, echo: 0.2 },
+                    tracks,
+                    patterns: [pattern],
+                    patternMutes: [{}],
+                    patternMidiNotes: [{}],
+                    patternParameters: [{}],
+                    patternOctaveOffsets: [{}],
+                    glitchPatterns: [{
+                        tapestop: Array(TOTAL_STEPS).fill(false),
+                        retrigger: Array(TOTAL_STEPS).fill(false),
+                        reverser: Array(TOTAL_STEPS).fill(false),
+                        crusher: Array(TOTAL_STEPS).fill(false),
+                        gater: Array(TOTAL_STEPS).fill(false),
+                    }],
+                    songTimeline: [Array(TL_BLOCKS).fill(false)],
+                    noteSettings: { key: 0, scale: "chromatic" },
+                    projectName: template.name,
+                };
+            }
 
             // Apply theme
             document.documentElement.setAttribute("data-theme", state.theme);
@@ -4138,6 +4255,85 @@
                 });
             }
 
+            function starterHasCurrentContent() {
+                return state.tracks.some((track) =>
+                    state.patterns.some((pattern) =>
+                        (pattern[track.id] || []).some(Boolean),
+                    ),
+                );
+            }
+
+            function applyStarter(template, remix) {
+                if (
+                    starterHasCurrentContent() &&
+                    !window.confirm(
+                        `${remix ? "Create a remix from" : "Load"} "${template.name}"? Your current pattern will be replaced.`,
+                    )
+                ) {
+                    return;
+                }
+                const next = makeStarterProject(template);
+                if (remix) {
+                    next.projectName = `${template.name} · REMIX`;
+                    next.remixOf = template.id;
+                    next.remixMode = true;
+                }
+                state = next;
+                customAudioBuffers = {};
+                currentPattern = 0;
+                currentBlock = 0;
+                isSongMode = false;
+                if (isPlaying) togglePlay();
+                if (audio) {
+                    audio.updateFX();
+                    audio.updateSpcSettings();
+                    state.tracks.forEach((track) => {
+                        audio.initChannelNode(track.id);
+                        audio.updateMix(track.id, "vol", track.vol);
+                        audio.updateMix(track.id, "pan", track.pan);
+                    });
+                }
+                document.documentElement.setAttribute("data-theme", state.theme);
+                document.getElementById("sl-bpm").value = state.bpm;
+                document.getElementById("val-bpm").innerText = state.bpm;
+                document.getElementById("sl-lpf").value = state.lpf;
+                document.getElementById("val-lpf").innerText = `${state.lpf}Hz`;
+                document.getElementById("sl-dist").value = state.dist;
+                document.getElementById("val-dist").innerText = `${state.dist}%`;
+                updatePatternDropdown();
+                renderTimeline();
+                renderRack();
+                document.getElementById("starter-modal").classList.remove("open");
+                setWorkflowStatus(
+                    remix
+                        ? `REMIX READY · ${template.name.toUpperCase()}`
+                        : `STARTER LOADED · ${template.name.toUpperCase()}`,
+                );
+            }
+
+            function renderStarterPicker() {
+                const grid = document.getElementById("starter-grid");
+                grid.innerHTML = "";
+                STARTER_TEMPLATES.forEach((template) => {
+                    const card = document.createElement("div");
+                    card.className = "lib-card";
+                    card.innerHTML = `
+                        <strong>${template.name}</strong>
+                        <small>${template.description}</small>
+                        <small>BPM ${template.bpm} · ORIGINAL SKETCH</small>
+                        <div style="display:flex; gap:4px; margin-top:6px">
+                            <button class="btn" data-starter-load>LOAD DEMO</button>
+                            <button class="btn btn-play" data-starter-remix>REMIX THIS</button>
+                        </div>
+                    `;
+                    card.querySelector("[data-starter-load]").onclick = () =>
+                        applyStarter(template, false);
+                    card.querySelector("[data-starter-remix]").onclick = () =>
+                        applyStarter(template, true);
+                    grid.appendChild(card);
+                });
+            }
+
             let activeFxTrackId = null;
 
             function openChannelFxModal(track) {
@@ -5157,6 +5353,11 @@
             document.getElementById("btn-paste-channel").onclick = pasteChannel;
             document.getElementById("btn-copy-trigger").onclick = copyTrigger;
             document.getElementById("btn-paste-trigger").onclick = pasteTrigger;
+            renderStarterPicker();
+            document.getElementById("btn-starters").onclick = () =>
+                document.getElementById("starter-modal").classList.add("open");
+            document.getElementById("btn-close-starters").onclick = () =>
+                document.getElementById("starter-modal").classList.remove("open");
             document.getElementById("btn-close-channel-fx").onclick = () =>
                 document.getElementById("channel-fx-modal").classList.remove("open");
             [
