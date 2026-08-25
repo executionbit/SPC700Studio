@@ -2610,13 +2610,16 @@
                         Number.isFinite(event.time) ? event.time : soonest,
                     );
                     const duration = Math.max(0.045, event.duration || 0.22);
+                    const voice = Number.isInteger(event.voice)
+                        ? event.voice
+                        : this.voiceForTrack(event.trackId);
                     this.events.push(
                         { ...event, type: "note-on", at: start },
                         { type: "clear-kon", at: start + 0.004 },
                         {
                             type: "note-off",
                             at: start + duration,
-                            voice: this.voiceForTrack(event.trackId),
+                            voice,
                         },
                         {
                             type: "clear-koff",
@@ -2704,7 +2707,9 @@
                         return;
                     }
 
-                    const voice = this.voiceForTrack(event.trackId);
+                    const voice = Number.isInteger(event.voice)
+                        ? event.voice
+                        : this.voiceForTrack(event.trackId);
                     const params = event.params || {};
                     const sampleKey = event.sampleBuffer
                         ? event.trackId
@@ -2945,6 +2950,74 @@
                 }
             }
 
+            class Spc700Pool {
+                constructor(ctx, destination, callbacks = {}, chipCount = 4) {
+                    this.buses = Array.from(
+                        { length: chipCount },
+                        (_, index) =>
+                            new Spc700Bus(ctx, destination, {
+                                onStatus: (message, ready) => {
+                                    if (index === 0) callbacks.onStatus?.(message, ready);
+                                },
+                                onVoice: callbacks.onVoice,
+                            }),
+                    );
+                }
+
+                get disabled() {
+                    return this.buses.every((bus) => bus.disabled);
+                }
+
+                healthyBuses() {
+                    return this.buses.filter((bus) => !bus.disabled);
+                }
+
+                busForEvent(event) {
+                    const buses = this.healthyBuses();
+                    if (!buses.length) return null;
+                    const trackIndex = state.tracks.findIndex(
+                        (track) => track.id === event.trackId,
+                    );
+                    const index =
+                        trackIndex >= 0
+                            ? Math.floor(trackIndex / 8) % buses.length
+                            : [...String(event.soundId || event.trackId)].reduce(
+                                  (hash, char) => hash + char.charCodeAt(0),
+                                  0,
+                              ) % buses.length;
+                    return {
+                        bus: buses[index],
+                        voice: trackIndex >= 0 ? trackIndex % 8 : 0,
+                    };
+                }
+
+                queueTrigger(event) {
+                    const target = this.busForEvent(event);
+                    if (!target) return false;
+                    return target.bus.queueTrigger({ ...event, voice: target.voice });
+                }
+
+                updateSettings() {
+                    this.buses.forEach((bus) => bus.updateSettings());
+                }
+
+                reset() {
+                    this.buses.forEach((bus) => bus.reset());
+                }
+
+                registerSample(id, buffer) {
+                    return this.buses.some((bus) => bus.registerSample(id, buffer));
+                }
+
+                canUseCustomSample(id) {
+                    return this.buses.some((bus) => bus.canUseCustomSample(id));
+                }
+
+                dispose() {
+                    this.buses.forEach((bus) => bus.dispose());
+                }
+            }
+
             class AudioEngine {
                 constructor() {
                     this.ctx = new (window.AudioContext ||
@@ -2971,7 +3044,7 @@
                     this.patchBuffers = new Map();
                     state.tracks.forEach((t) => this.initChannelNode(t.id));
                     this.updateFX();
-                    this.spc = new Spc700Bus(this.ctx, this.distortion, {
+                    this.spc = new Spc700Pool(this.ctx, this.distortion, {
                         onStatus: (message, ready) => {
                             const label = document.getElementById("spc-status");
                             if (label) {
