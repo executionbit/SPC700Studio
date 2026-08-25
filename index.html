@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="mario">
+<html lang="en" data-theme="sunrise">
     <head>
         <meta charset="UTF-8" />
         <link rel="icon" href="data:," />
@@ -10,7 +10,7 @@
         <title>Ghettochip Studio - Retro Sound Library & DLC Workstation</title>
         <style>
             /* --- THEME CONFIGURATIONS --- */
-            :root[data-theme="mario"] {
+            :root[data-theme="sunrise"] {
                 --bg-dark: #1a44b3;
                 --panel-bg: #f8f9fa;
                 --panel-border: #b0c4de;
@@ -28,7 +28,7 @@
                 --btn-hover: #e2e8f0;
             }
 
-            :root[data-theme="pokemon"] {
+            :root[data-theme="tide"] {
                 --bg-dark: #1e1e2f;
                 --panel-bg: #f3f4f6;
                 --panel-border: #9ca3af;
@@ -46,7 +46,7 @@
                 --btn-hover: #e5e7eb;
             }
 
-            :root[data-theme="ff"] {
+            :root[data-theme="nocturne"] {
                 --bg-dark: #090c15;
                 --panel-bg: #101626;
                 --panel-border: #3b4d71;
@@ -1243,11 +1243,11 @@
                         </select>
                     </div>
                     <div class="spc-toolbar" title="Authentic S-DSP voice backend">
-                        <span class="spc-led" id="spc-status">SPC700 · WARMING</span>
+                        <span class="spc-led" id="spc-status">S-DSP · WARMING</span>
                         <label>VOL <input type="range" id="spc-master" min="0" max="1" step="0.05" value="0.85" /></label>
                         <label>ADSR <input type="range" id="spc-adsr" min="0" max="7" step="1" value="4" /></label>
                         <label>ECHO <input type="range" id="spc-echo" min="0" max="0.75" step="0.05" value="0.2" /></label>
-                        <button class="btn" id="btn-spc-reset" title="Reset the SPC700 voice RAM and reload patches">RESET</button>
+                        <button class="btn" id="btn-spc-reset" title="Reset S-DSP voice RAM and reload patches">RESET</button>
                     </div>
                     <div class="workflow-toolbar">
                         <span
@@ -1337,14 +1337,14 @@
                 </div>
                 <div class="modal-scroll-area">
                     <div class="lib-tabs" id="lib-tabs">
-                        <div class="lib-tab active" data-kit="mario">
-                            🍄 Super Mario World Kit
+                        <div class="lib-tab active" data-kit="sunrise">
+                            ☀️ Sunrise Rhythm Kit
                         </div>
-                        <div class="lib-tab" data-kit="pokemon">
-                            ⚡ Pokémon Red/Blue Kit
+                        <div class="lib-tab" data-kit="tide">
+                            🌊 Tide Texture Kit
                         </div>
-                        <div class="lib-tab" data-kit="ff">
-                            ⚔️ Final Fantasy III Kit
+                        <div class="lib-tab" data-kit="nocturne">
+                            ✦ Neon Motion Kit
                         </div>
                         <div class="lib-tab" data-kit="dlc">
                             🧩 Installed DLC
@@ -1394,9 +1394,9 @@
                             margin-bottom: 8px;
                         "
                     >
-                        Unlock premium DLC sound kits inspired by legendary
-                        retro console classics. Instantly add custom drum kits,
-                        arps, and sound FX to your workstation channels!
+                        Original procedural sound expansions for cinematic color,
+                        mechanical pulse, dream texture, and more. No game audio,
+                        ROM data, or copied musical material is included.
                     </div>
                     <div class="lib-grid" id="dlc-grid"></div>
                 </div>
@@ -1540,226 +1540,259 @@
             </div>
         </div>
 
+        <script src="sound-patches.js"></script>
         <script src="spc-runtime.js"></script>
         <script>
-            // --- SOUND LIBRARY DATA (SMW, POKEMON, FF III) & DLC PACKS ---
+            // --- ORIGINAL PROCEDURAL SOUND LIBRARY & DLC PACKS ---
             const soundLibraryKits = {
-                mario: [
+                sunrise: [
                     {
-                        id: "mario_coin",
-                        name: "Coin Chime",
-                        category: "Sound FX",
-                        desc: "Classic Super Mario World coin collection ping.",
-                    },
-                    {
-                        id: "mario_jump",
-                        name: "Super Jump",
-                        category: "Synth Lead",
-                        desc: "Rising frequency spring sound effect.",
-                    },
-                    {
-                        id: "mario_kick",
-                        name: "Spin Kick Drum",
+                        id: "sun_kick",
+                        name: "Sun Kick",
                         category: "Drum Kit",
-                        desc: "Thumping SNES low bass drum thud.",
+                        desc: "Tuned low body with a short, bright transient.",
                     },
                     {
-                        id: "mario_snare",
-                        name: "Yoshi Snare",
+                        id: "ember_snare",
+                        name: "Ember Snare",
                         category: "Drum Kit",
-                        desc: "Crisp acoustic-chip snare snap.",
+                        desc: "Layered tonal crack and filtered noise tail.",
                     },
                     {
-                        id: "mario_powerup",
-                        name: "Mushroom Power",
-                        category: "Sound FX",
-                        desc: "Ascending 16-bit square wave arpeggio.",
+                        id: "prism_hat",
+                        name: "Prism Hat",
+                        category: "Drum Kit",
+                        desc: "Crisp metallic noise with a compact decay.",
                     },
                     {
-                        id: "mario_bongo",
-                        name: "Athletic Bongo",
-                        category: "Other Noises",
-                        desc: "Fast melodic wooden percussive pulse.",
+                        id: "drift_clap",
+                        name: "Drift Clap",
+                        category: "Drum Kit",
+                        desc: "Three-burst handclap shape for accented steps.",
+                    },
+                    {
+                        id: "grove_tom",
+                        name: "Grove Tom",
+                        category: "Drum Kit",
+                        desc: "Round tuned percussion with a woody overtone.",
+                    },
+                    {
+                        id: "spark_rim",
+                        name: "Spark Rim",
+                        category: "Drum Kit",
+                        desc: "Short pitched rim accent with a dry finish.",
                     },
                 ],
-                pokemon: [
+                tide: [
                     {
-                        id: "poke_select",
-                        name: "Menu Select",
-                        category: "Sound FX",
-                        desc: "Classic GameBoy UI cursor beep.",
+                        id: "mist_kick",
+                        name: "Mist Kick",
+                        category: "Drum Kit",
+                        desc: "Soft extended low-end pulse with minimal click.",
                     },
                     {
-                        id: "poke_heal",
-                        name: "Pokecenter Chime",
+                        id: "glass_snare",
+                        name: "Glass Snare",
+                        category: "Drum Kit",
+                        desc: "Fine noise texture with a clear tonal center.",
+                    },
+                    {
+                        id: "halo_hat",
+                        name: "Halo Hat",
+                        category: "Drum Kit",
+                        desc: "Airy metallic hat with an open, luminous tail.",
+                    },
+                    {
+                        id: "tide_shaker",
+                        name: "Tide Shaker",
+                        category: "Percussion",
+                        desc: "Gentle granular shaker for offbeat movement.",
+                    },
+                    {
+                        id: "velvet_bass",
+                        name: "Velvet Bass",
+                        category: "Bass",
+                        desc: "Warm saw-and-sine bass with a smooth release.",
+                    },
+                    {
+                        id: "lunar_lead",
+                        name: "Lunar Lead",
                         category: "Synth Lead",
-                        desc: "Restoration healing arpeggio sequence.",
-                    },
-                    {
-                        id: "poke_kick",
-                        name: "Encounter Kick",
-                        category: "Drum Kit",
-                        desc: "Punchy 8-bit battle initialization kick.",
-                    },
-                    {
-                        id: "poke_snare",
-                        name: "Trainer Snare",
-                        category: "Drum Kit",
-                        desc: "Sharp white noise battle hit.",
-                    },
-                    {
-                        id: "poke_bike",
-                        name: "Cycling Gear",
-                        category: "Other Noises",
-                        desc: "Fast rhythmic pedal whir noise.",
-                    },
-                    {
-                        id: "poke_item",
-                        name: "Item Get",
-                        category: "Sound FX",
-                        desc: "Bright celebratory jingle chime.",
+                        desc: "Rounded lead tone built for gentle phrases.",
                     },
                 ],
-                ff: [
+                nocturne: [
                     {
-                        id: "ff_cursor",
-                        name: "FF3 Crystal Cursor",
-                        category: "Sound FX",
-                        desc: "Royal menu selection blip.",
-                    },
-                    {
-                        id: "ff_magic",
-                        name: "Aero Magic Cast",
-                        category: "Synth Lead",
-                        desc: "Shimmering crystal chord arpeggio.",
-                    },
-                    {
-                        id: "ff_kick",
-                        name: "Battle Heavy Kick",
+                        id: "arc_kick",
+                        name: "Arc Kick",
                         category: "Drum Kit",
-                        desc: "Cinematic deep low-end impact drum.",
+                        desc: "Fast, punchy low body for rapid patterns.",
                     },
                     {
-                        id: "ff_bell",
-                        name: "Victory Fanfare Bell",
-                        category: "Synth Lead",
-                        desc: "Crystal tower celebratory bell tone.",
-                    },
-                    {
-                        id: "ff_airship",
-                        name: "Airship Engine",
-                        category: "Other Noises",
-                        desc: "Low rumbling retro propulsion hum.",
-                    },
-                    {
-                        id: "ff_chocobo",
-                        name: "Chocobo Stomp",
+                        id: "chrome_snare",
+                        name: "Chrome Snare",
                         category: "Drum Kit",
-                        desc: "Quirky march percussion beat.",
+                        desc: "Dense snap with a compact industrial edge.",
+                    },
+                    {
+                        id: "pulse_hat",
+                        name: "Pulse Hat",
+                        category: "Drum Kit",
+                        desc: "Tight bright hat for quick sequencer motion.",
+                    },
+                    {
+                        id: "signal_clap",
+                        name: "Signal Clap",
+                        category: "Drum Kit",
+                        desc: "Narrow stereo-style clap shape for backbeats.",
+                    },
+                    {
+                        id: "circuit_bass",
+                        name: "Circuit Bass",
+                        category: "Bass",
+                        desc: "Driven short bass voice with quick articulation.",
+                    },
+                    {
+                        id: "vector_arp",
+                        name: "Vector Arp",
+                        category: "Synth Lead",
+                        desc: "Compact bell-like pluck for arpeggiated lines.",
                     },
                 ],
             };
 
             const dlcSoundPacks = [
                 {
-                    id: "dlc_chrono",
-                    name: "Chrono Trigger: 1999 A.D. Pack",
-                    game: "SNES Classic",
+                    id: "dlc_aurora",
+                    name: "Aurora Passage Pack",
+                    game: "Cinematic Color",
                     price: "FREE DLC",
-                    desc: "Time portal ambient synths, 16-bit epoch drums, and futuristic Blade FX.",
+                    desc: "Original rolling toms, glass chimes, and slowly opening northern textures.",
                     unlocked: false,
                     items: [
-                        {
-                            id: "chrono_portal",
-                            name: "Time Portal",
-                            category: "Sound FX",
-                            desc: "Swirling pitch-bend time warp synth.",
-                        },
-                        {
-                            id: "chrono_snare",
-                            name: "Epoch Snare",
-                            category: "Drum Kit",
-                            desc: "Punchy SNES 16-bit acoustic snare.",
-                        },
-                        {
-                            id: "chrono_bell",
-                            name: "Zeal Kingdom Bell",
-                            category: "Synth Lead",
-                            desc: "Heavenly floating sky palace chime.",
-                        },
+                        { id: "aurora_drum", name: "Aurora Drum", category: "Drum Kit", desc: "Rolling tuned drum with a slow bloom." },
+                        { id: "aurora_chime", name: "Aurora Chime", category: "Synth Lead", desc: "Long original glass overtone." },
+                        { id: "aurora_swell", name: "Aurora Swell", category: "Texture", desc: "Airy pad with a gradual rise." },
                     ],
                 },
                 {
-                    id: "dlc_megaman",
-                    name: "Mega Man X: Maverick Arsenal",
-                    game: "SNES Action",
+                    id: "dlc_ironwave",
+                    name: "Ironwave Pulse Pack",
+                    game: "Mechanical Pulse",
                     price: "FREE DLC",
-                    desc: "Charging buster blasts, metallic industrial drum loops, and dash sound FX.",
+                    desc: "Original driven bass, clipped kick, and resonant metal percussion.",
                     unlocked: false,
                     items: [
-                        {
-                            id: "mm_charge",
-                            name: "Buster Charge",
-                            category: "Synth Lead",
-                            desc: "Rising energy oscillation pulse.",
-                        },
-                        {
-                            id: "mm_dash",
-                            name: "X-Dash SFX",
-                            category: "Sound FX",
-                            desc: "High-speed directional air dash.",
-                        },
-                        {
-                            id: "mm_kick",
-                            name: "Maverick Kick",
-                            category: "Drum Kit",
-                            desc: "Heavy industrial boss stage bass drum.",
-                        },
+                        { id: "iron_kick", name: "Iron Kick", category: "Drum Kit", desc: "Clipped low impact with a metallic attack." },
+                        { id: "iron_clang", name: "Iron Clang", category: "Percussion", desc: "Resonant tuned metal accent." },
+                        { id: "iron_drive", name: "Iron Drive", category: "Bass", desc: "Short driven bass for fast motion." },
                     ],
                 },
                 {
-                    id: "dlc_zelda",
-                    name: "Zelda: Link to the Past Triforce Kit",
-                    game: "Adventure RPG",
+                    id: "dlc_moonwell",
+                    name: "Moonwell Glass Pack",
+                    game: "Dream Texture",
                     price: "$4.99",
-                    desc: "Secret discovery jingles, fairy sparkles, and subterranean dungeon drums.",
+                    desc: "Original watery toms, suspended bells, and breathable pad tones.",
                     unlocked: false,
                     items: [
-                        {
-                            id: "zelda_secret",
-                            name: "Secret Chime",
-                            category: "Sound FX",
-                            desc: "The iconic puzzle solved triumphant fanfare.",
-                        },
-                        {
-                            id: "zelda_fairy",
-                            name: "Fairy Sparkle",
-                            category: "Synth Lead",
-                            desc: "Magical twinkling high-frequency arpeggio.",
-                        },
-                        {
-                            id: "zelda_drum",
-                            name: "Dungeon Thud",
-                            category: "Drum Kit",
-                            desc: "Echoing deep crypt percussion hit.",
-                        },
+                        { id: "moon_tom", name: "Moon Tom", category: "Drum Kit", desc: "Deep tuned drum with a wide decay." },
+                        { id: "moon_glass", name: "Moon Glass", category: "Synth Lead", desc: "Slow original bell bloom." },
+                        { id: "moon_breath", name: "Moon Breath", category: "Texture", desc: "Soft moving pad layer." },
+                    ],
+                },
+                {
+                    id: "dlc_sunforge", name: "Sunforge Ensemble Pack", game: "Sunlit Ensemble", price: "$4.99",
+                    desc: "Original hand percussion, warm plucks, and bright melodic accents.",
+                    unlocked: false,
+                    items: [
+                        { id: "sun_clap", name: "Sun Clap", category: "Drum Kit", desc: "Open handclap with three crisp bursts." },
+                        { id: "sun_bongo", name: "Sun Bongo", category: "Percussion", desc: "Wood-toned tuned hand drum." },
+                        { id: "sun_bloom", name: "Sun Bloom", category: "Synth Lead", desc: "Warm rising lead accent." },
+                    ],
+                },
+                {
+                    id: "dlc_grandhall", name: "Grand Hall Brass Pack", game: "Dramatic Orchestra", price: "$4.99",
+                    desc: "Original timpani, bold brass-style leads, and ceremonial low-end design.",
+                    unlocked: false,
+                    items: [
+                        { id: "hall_kick", name: "Hall Kick", category: "Drum Kit", desc: "Large low impact with a soft attack." },
+                        { id: "hall_brass", name: "Hall Brass", category: "Synth Lead", desc: "Bold original stacked-lead tone." },
+                        { id: "hall_timpani", name: "Hall Timpani", category: "Percussion", desc: "Long resonant tuned drum." },
+                    ],
+                },
+                {
+                    id: "dlc_fogline", name: "Fogline Atmosphere Pack", game: "Haunted Ambience", price: "$4.99",
+                    desc: "Original muted snares, windlike pads, and descending effects.",
+                    unlocked: false,
+                    items: [
+                        { id: "fog_snare", name: "Fog Snare", category: "Drum Kit", desc: "Muted noise snap with a misty tail." },
+                        { id: "fog_wind", name: "Fog Wind", category: "Texture", desc: "Original breathy sustained layer." },
+                        { id: "fog_drop", name: "Fog Drop", category: "Sound FX", desc: "Descending spectral effect." },
+                    ],
+                },
+                {
+                    id: "dlc_mirrorbay", name: "Mirror Bay Sparkle Pack", game: "Crystal Coast", price: "$4.99",
+                    desc: "Original delicate hats, luminous bells, and compact plucks.",
+                    unlocked: false,
+                    items: [
+                        { id: "mirror_hat", name: "Mirror Hat", category: "Drum Kit", desc: "Bright open metallic hat." },
+                        { id: "mirror_bell", name: "Mirror Bell", category: "Synth Lead", desc: "Long luminous overtone bell." },
+                        { id: "mirror_pluck", name: "Mirror Pluck", category: "Synth Lead", desc: "Short reflective pluck voice." },
+                    ],
+                },
+                {
+                    id: "dlc_rushlight", name: "Rushlight Arcade Pack", game: "Neon Sprint", price: "$4.99",
+                    desc: "Original rapid kicks, sharp hats, and kinetic effects for high-energy patterns.",
+                    unlocked: false,
+                    items: [
+                        { id: "rush_kick", name: "Rush Kick", category: "Drum Kit", desc: "Fast low kick with a sharp snap." },
+                        { id: "rush_hat", name: "Rush Hat", category: "Drum Kit", desc: "Very short bright sequencer hat." },
+                        { id: "rush_flash", name: "Rush Flash", category: "Sound FX", desc: "Kinetic downward flash effect." },
                     ],
                 },
             ];
 
+            async function hydrateDlcCatalog() {
+                try {
+                    const response = await fetch("/api/dlc/catalog");
+                    if (!response.ok) throw new Error("Catalog is unavailable.");
+                    const serverPacks = await response.json();
+                    const byId = new Map(
+                        (serverPacks.packs || []).map((pack) => [pack.id, pack]),
+                    );
+                    dlcSoundPacks.forEach((pack) => {
+                        const authoritative = byId.get(pack.id);
+                        if (!authoritative) return;
+                        pack.name = authoritative.name;
+                        pack.game = authoritative.game;
+                        pack.desc = authoritative.description;
+                        pack.freeForNewUsers = authoritative.freeForNewUsers;
+                        pack.price = authoritative.freeForNewUsers
+                            ? "FREE DLC"
+                            : `$${(authoritative.priceCents / 100).toFixed(2)}`;
+                    });
+                } catch (error) {
+                    console.warn("DLC catalog refresh failed:", error.message);
+                }
+            }
+            void hydrateDlcCatalog();
+
             // --- STATE MANAGEMENT ---
             const TOTAL_STEPS = 32,
                 TL_BLOCKS = 16;
-            let themesList = ["mario", "pokemon", "ff", "dark"];
+            let themesList = ["sunrise", "tide", "nocturne", "dark"];
             let themeNames = {
-                mario: "Super Mario World",
-                pokemon: "Pokémon Red/Blue",
-                ff: "Final Fantasy III",
-                dark: "Classic Dark",
+                sunrise: "Sunrise Rhythm",
+                tide: "Tide Texture",
+                nocturne: "Neon Motion",
+                dark: "Midnight Console",
             };
 
             let state = {
-                theme: localStorage.getItem("ghettochip_theme") || "mario",
+                theme: themesList.includes(localStorage.getItem("ghettochip_theme"))
+                    ? localStorage.getItem("ghettochip_theme")
+                    : "sunrise",
                 bpm: 120,
                 lpf: 3200,
                 dist: 15,
@@ -2420,7 +2453,7 @@
                             throw new Error("AudioWorklet is not available in this browser.");
                         }
                         if (!window.SpcDspRuntime) {
-                            throw new Error("SPC700 runtime loader is missing.");
+                            throw new Error("S-DSP runtime loader is missing.");
                         }
 
                         await this.ctx.audioWorklet.addModule(
@@ -2452,7 +2485,7 @@
                             () => this.renderAhead(),
                             20,
                         );
-                        this.onStatus("SPC700 · READY · 8 VOICES", true);
+                        this.onStatus("S-DSP · READY · 8 VOICES", true);
 
                         const queued = this.waitingTriggers.splice(0);
                         queued.forEach((event) => this.queueTrigger(event));
@@ -2460,8 +2493,8 @@
                     } catch (error) {
                         this.loading = false;
                         this.disabled = true;
-                        console.warn("SPC700 initialization failed:", error);
-                        this.onStatus("SPC700 · FALLBACK", false);
+                        console.warn("S-DSP initialization failed:", error);
+                        this.onStatus("S-DSP · FALLBACK", false);
                     }
                 }
 
@@ -2478,7 +2511,7 @@
                         } catch (error) {
                             this.pendingSamples.delete(id);
                             this.unsupportedSamples.add(id);
-                            this.onStatus("SPC700 · LONG SAMPLE · LEGACY", false);
+                            this.onStatus("S-DSP · LONG SAMPLE · LEGACY", false);
                         }
                     });
                 }
@@ -2517,7 +2550,7 @@
                     this.worklet?.port.postMessage({ type: "clear" });
                     this.resetCore();
                     this.renderCursor = this.ctx.currentTime + 0.05;
-                    this.onStatus("SPC700 · RESET", true);
+                    this.onStatus("S-DSP · RESET", true);
                 }
 
                 queueTrigger(event) {
@@ -2643,8 +2676,8 @@
                             Number(params.duty || 0),
                         );
                     } catch (error) {
-                        this.onStatus("SPC700 · SAMPLE TOO LARGE", false);
-                        console.warn("SPC700 sample import:", error);
+                        this.onStatus("S-DSP · SAMPLE TOO LARGE", false);
+                        console.warn("S-DSP sample import:", error);
                         return;
                     }
 
@@ -2713,10 +2746,15 @@
                         : this.pendingSamples.has(key)
                           ? this.audioBufferToPcm(this.pendingSamples.get(key))
                           : this.createBuiltinPcm(key, duty);
+                    const recipe = window.GhettochipPatchBank?.recipeFor(key);
+                    const loopBuiltin =
+                        !audioBuffer &&
+                        !this.pendingSamples.has(key) &&
+                        ["bass", "lead", "bell", "pad"].includes(recipe?.kind);
                     return this.installSample(
                         variantKey,
                         pcm,
-                        !audioBuffer && !this.pendingSamples.has(key),
+                        loopBuiltin,
                     );
                 }
 
@@ -2730,7 +2768,7 @@
                     } catch (error) {
                         this.pendingSamples.delete(id);
                         this.unsupportedSamples.add(id);
-                        this.onStatus("SPC700 · LONG SAMPLE · LEGACY", false);
+                        this.onStatus("S-DSP · LONG SAMPLE · LEGACY", false);
                         return false;
                     }
                 }
@@ -2746,7 +2784,7 @@
                     }
                     const encoded = this.encodeBrr(pcm, loop);
                     if (this.nextSampleAddress + encoded.length >= 0xd000) {
-                        throw new Error("Sample cannot fit in SPC700 APU RAM.");
+                        throw new Error("Sample cannot fit in S-DSP APU RAM.");
                     }
                     const slot = this.nextSlot++;
                     const address = this.nextSampleAddress;
@@ -2840,48 +2878,23 @@
                 }
 
                 createBuiltinPcm(key, duty = 0) {
-                    const lower = String(key).toLowerCase();
-                    const noise =
-                        lower.includes("snare") ||
-                        lower.includes("hat") ||
-                        lower.includes("noise") ||
-                        lower.includes("glitch") ||
-                        lower.includes("dash");
-                    const drum =
-                        lower.includes("kick") ||
-                        lower.includes("drum") ||
-                        lower.includes("bongo") ||
-                        lower.includes("stomp");
-                    const length = noise || drum ? 2048 : 512;
-                    const output = new Float32Array(length);
-                    let seed = [...lower].reduce(
-                        (value, char) => (value * 33 + char.charCodeAt(0)) >>> 0,
-                        5381,
-                    );
-                    const random = () => {
-                        seed = (seed * 1664525 + 1013904223) >>> 0;
-                        return seed / 0xffffffff;
-                    };
-                    for (let index = 0; index < length; index += 1) {
-                        const phase = (index / length) * Math.PI * 2;
-                        const decay = Math.exp((-index / length) * (drum ? 7 : 3));
-                        if (noise) {
-                            output[index] = (random() * 2 - 1) * decay * 0.8;
-                        } else if (drum) {
-                            output[index] =
-                                Math.sin(phase * (4 - index / length * 3.2)) *
-                                decay *
-                                0.9;
-                        } else if (lower.includes("bass")) {
-                            output[index] = ((phase % (Math.PI * 2)) / Math.PI - 1) * 0.7;
-                        } else {
-                            const harmonics = 1 + Number(duty || 0);
-                            output[index] =
-                                Math.sin(phase * harmonics) * 0.62 +
-                                Math.sin(phase * (harmonics + 1)) * 0.14;
+                    if (window.GhettochipPatchBank) {
+                        const rendered = window.GhettochipPatchBank.render(
+                            key,
+                            32000,
+                            duty,
+                        );
+                        const maxFrames = 6144;
+                        if (rendered.length <= maxFrames) return rendered;
+                        const compact = rendered.slice(0, maxFrames);
+                        const fadeFrames = 256;
+                        for (let frame = 0; frame < fadeFrames; frame += 1) {
+                            const index = compact.length - fadeFrames + frame;
+                            compact[index] *= 1 - frame / fadeFrames;
                         }
+                        return compact;
                     }
-                    return output;
+                    return new Float32Array([0, 0.35, -0.28, 0.1, 0]);
                 }
 
                 dispose() {
@@ -2914,6 +2927,7 @@
                     this.masterGain.connect(this.streamDest);
 
                     this.channels = {};
+                    this.patchBuffers = new Map();
                     state.tracks.forEach((t) => this.initChannelNode(t.id));
                     this.updateFX();
                     this.spc = new Spc700Bus(this.ctx, this.distortion, {
@@ -2968,6 +2982,23 @@
                 registerCustomSample(id, buffer) {
                     this.spc?.registerSample(id, buffer);
                 }
+                playProceduralPatch(soundId, destination, time, pitchMod) {
+                    if (!window.GhettochipPatchBank) return false;
+                    let buffer = this.patchBuffers.get(soundId);
+                    if (!buffer) {
+                        buffer = window.GhettochipPatchBank.createBuffer(
+                            this.ctx,
+                            soundId,
+                        );
+                        this.patchBuffers.set(soundId, buffer);
+                    }
+                    const source = this.ctx.createBufferSource();
+                    source.buffer = buffer;
+                    source.playbackRate.value = pitchMod;
+                    source.connect(destination);
+                    source.start(time);
+                    return true;
+                }
                 flashVoice(trackId) {
                     const row = document.querySelector(
                         `.track-row[data-track-id="${CSS.escape(trackId)}"]`,
@@ -2992,9 +3023,24 @@
                         (track) => track.id === sound,
                     );
                     const soundId = (track && track.soundId) || sound;
+                    const isCoreDspVoice =
+                        sound === soundId &&
+                        [
+                            "kick",
+                            "snare",
+                            "hat",
+                            "glitch",
+                            "bass",
+                            "lead",
+                            "arp",
+                            "noise",
+                        ].includes(soundId);
+                    const shouldUseSpc =
+                        isCoreDspVoice || Boolean(customAudioBuffers[sound]);
                     if (
                         this.spc &&
                         !this.spc.disabled &&
+                        shouldUseSpc &&
                         (!customAudioBuffers[sound] ||
                             this.spc.canUseCustomSample(sound))
                     ) {
@@ -3030,12 +3076,20 @@
                         return;
                     }
 
+                    // Library and DLC patches stay browser-resident so browsing an
+                    // expanded catalog never exhausts the S-DSP's finite APU RAM.
+                    // The same deterministic recipe bank still drives the core
+                    // S-DSP voices and this full-duration browser path.
+                    if (this.playProceduralPatch(soundId, dest, t, pitchMod)) {
+                        return;
+                    }
+
                     // Library/DLC channels use a generated channel id, so resolve the
                     // original sound id before selecting its synthesized voice.
                     // Synthesized sounds including Library Sound Kits & DLC Packs
                     switch (soundId) {
-                        case "mario_coin":
-                        case "poke_item": {
+                        case "obsolete_patch_01":
+                        case "obsolete_patch_02": {
                             let o1 = this.ctx.createOscillator(),
                                 o2 = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
@@ -3062,7 +3116,7 @@
                             o2.stop(t + 0.3);
                             break;
                         }
-                        case "mario_jump": {
+                        case "obsolete_patch_03": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "square";
@@ -3079,7 +3133,7 @@
                             o.stop(t + 0.15);
                             break;
                         }
-                        case "mario_powerup": {
+                        case "obsolete_patch_04": {
                             let notes = [330, 392, 659, 523, 587, 784];
                             notes.forEach((f, idx) => {
                                 let o = this.ctx.createOscillator(),
@@ -3098,7 +3152,7 @@
                             });
                             break;
                         }
-                        case "poke_select": {
+                        case "obsolete_patch_05": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "square";
@@ -3111,7 +3165,7 @@
                             o.stop(t + 0.06);
                             break;
                         }
-                        case "poke_heal": {
+                        case "obsolete_patch_06": {
                             let notes = [523, 659, 784, 1046];
                             notes.forEach((f, idx) => {
                                 let o = this.ctx.createOscillator(),
@@ -3130,8 +3184,8 @@
                             });
                             break;
                         }
-                        case "poke_bike":
-                        case "ff_airship": {
+                        case "obsolete_patch_07":
+                        case "obsolete_patch_08": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "sawtooth";
@@ -3148,8 +3202,8 @@
                             o.stop(t + 0.3);
                             break;
                         }
-                        case "mario_bongo":
-                        case "ff_chocobo":
+                        case "obsolete_patch_09":
+                        case "obsolete_patch_10":
                         case "noise": {
                             let b = this.ctx.createBuffer(
                                     1,
@@ -3173,7 +3227,7 @@
                             n.start(t);
                             break;
                         }
-                        case "ff_cursor": {
+                        case "obsolete_patch_11": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "sine";
@@ -3190,7 +3244,7 @@
                             o.stop(t + 0.08);
                             break;
                         }
-                        case "ff_magic":
+                        case "obsolete_patch_12":
                         case "arp": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
@@ -3208,8 +3262,8 @@
                             o.stop(t + 0.15);
                             break;
                         }
-                        case "ff_bell":
-                        case "chrono_bell": {
+                        case "obsolete_patch_13":
+                        case "obsolete_patch_14": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "sine";
@@ -3222,7 +3276,7 @@
                             o.stop(t + 0.4);
                             break;
                         }
-                        case "chrono_portal": {
+                        case "obsolete_patch_15": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "sawtooth";
@@ -3239,7 +3293,7 @@
                             o.stop(t + 0.25);
                             break;
                         }
-                        case "mm_charge": {
+                        case "obsolete_patch_16": {
                             let o = this.ctx.createOscillator(),
                                 g = this.ctx.createGain();
                             o.type = "square";
@@ -3256,7 +3310,7 @@
                             o.stop(t + 0.2);
                             break;
                         }
-                        case "zelda_secret": {
+                        case "obsolete_patch_17": {
                             let notes = [
                                 523, 587, 659, 698, 784, 880, 988, 1046,
                             ];
@@ -3278,12 +3332,12 @@
                             break;
                         }
                         case "kick":
-                        case "mario_kick":
-                        case "poke_kick":
-                        case "ff_kick":
-                        case "chrono_snare":
-                        case "mm_kick":
-                        case "zelda_drum": {
+                        case "obsolete_patch_18":
+                        case "obsolete_patch_19":
+                        case "obsolete_patch_20":
+                        case "obsolete_patch_21":
+                        case "obsolete_patch_22":
+                        case "obsolete_patch_23": {
                             let osc = this.ctx.createOscillator(),
                                 gain = this.ctx.createGain();
                             osc.connect(gain);
@@ -3303,10 +3357,10 @@
                             break;
                         }
                         case "snare":
-                        case "mario_snare":
-                        case "poke_snare":
-                        case "mm_dash":
-                        case "zelda_fairy": {
+                        case "obsolete_patch_24":
+                        case "obsolete_patch_25":
+                        case "obsolete_patch_26":
+                        case "obsolete_patch_27": {
                             let b = this.ctx.createBuffer(
                                     1,
                                     this.ctx.sampleRate * 0.12,
@@ -3395,8 +3449,8 @@
                             o.stop(t + 0.2);
                             break;
                         }
-                        case "mario_bongo":
-                        case "ff_chocobo":
+                        case "obsolete_patch_28":
+                        case "obsolete_patch_29":
                         default: {
                             // Keep newly added library sounds audible even if a pack
                             // supplies an id without a dedicated voice yet.
@@ -3471,7 +3525,7 @@
             // --- SOUND LIBRARY MODAL LOGIC ---
             const libraryModal = document.getElementById("library-modal");
             document.getElementById("btn-open-library").onclick = () => {
-                renderLibraryKit("mario");
+                renderLibraryKit("sunrise");
                 libraryModal.classList.add("open");
             };
             document.getElementById("btn-close-library").onclick = () =>
@@ -3596,7 +3650,7 @@
                     <span>${pack.name}</span>
                     <span class="lib-badge" style="background:var(--accent-pink); color:white;">${pack.price}</span>
                 </div>
-                <div class="lib-desc">Console: <b>${pack.game}</b> — ${pack.desc}</div>
+                <div class="lib-desc">Style: <b>${pack.game}</b> — ${pack.desc}</div>
                 <div style="margin-top:4px;">${itemsHtml}</div>
                 ${!pack.unlocked ? `<button class="btn" style="margin-top:6px; background:var(--accent-pink); color:white; font-size:9px; width:100%; justify-content:center;" onclick="unlockDlcPack('${pack.id}')">${pack.price === "FREE DLC" ? "SIGN IN TO CLAIM FREE DLC" : `BUY ${pack.price} · SECURE CHECKOUT`}</button>` : '<div style="margin-top:6px; font-size:8px; color:var(--accent-green); font-weight:bold; text-align:center;">✓ VERIFIED & RESTORED</div>'}
             `;
@@ -4796,7 +4850,9 @@
                         ensurePatternData();
                         document.documentElement.setAttribute(
                             "data-theme",
-                            state.theme || "mario",
+                            themesList.includes(state.theme)
+                                ? state.theme
+                                : "sunrise",
                         );
                         updateThemeButtonText();
                         document.getElementById("sl-bpm").value = state.bpm;

@@ -1,8 +1,22 @@
 # SPC700 S-DSP build information
 
 Ghettochip Studio ships the `wasm/spc-dsp.js` and `wasm/spc-dsp.wasm` browser
-module from the supplied SPC700 workstation resource. It wraps the standalone
+module from the supplied workstation resource. It wraps the standalone
 `SPC_DSP` implementation from `snes-spc-arm` / `snes_spc` 0.9.0.
+
+## Scope of emulation
+
+This is an authentic S-DSP signal path: voices, BRR decoding, ADSR, pitch,
+mixing, echo, and DSP RAM/register behavior are handled by the upstream
+implementation. It is **not** a complete SPC700/SMP music emulator. The
+workstation does not run the SPC700 CPU, timers, IPL boot ROM, or complete SPC
+music files. Browser scheduling and the original procedural patch bank supply
+the trigger events around the S-DSP core.
+
+The eight core performance voices use compact BRR patches in S-DSP RAM. The
+larger library and DLC catalog uses the same deterministic patch recipes through
+browser-resident audio buffers, preserving longer decays while avoiding a
+finite-RAM failure after browsing many distinct sounds in one session.
 
 ## Included source and notices
 
