@@ -1,1 +1,2 @@
 - [S-DSP output headroom](spc-dsp-output-headroom.md) — snes_spc needs spare PCM capacity at render boundaries to avoid switching to its internal overflow buffer.
+- [Stripe connector fields](stripe-connector-fields.md) — use the connector’s current `secret` and `publishable` fields, not older `secret_key` assumptions.

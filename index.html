@@ -985,6 +985,27 @@
                 font-size: 8px;
                 padding: 3px 5px;
             }
+            .account-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                max-width: 175px;
+                padding: 3px 5px;
+                border: 1px solid var(--panel-border);
+                border-radius: 3px;
+                background: rgba(255, 255, 255, 0.72);
+                font-size: 8px;
+                font-weight: bold;
+            }
+            .account-state {
+                overflow: hidden;
+                color: var(--text-muted);
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .account-chip.signed-in .account-state {
+                color: var(--accent-green);
+            }
             .playhead {
                 outline: 2px solid var(--accent-yellow);
                 outline-offset: 1px;
@@ -1104,6 +1125,10 @@
                         </svg>
                         DLC PACKS
                     </button>
+                    <div class="account-chip" id="account-chip">
+                        <button class="btn" id="btn-account" title="Sign in to restore purchases">ACCOUNT</button>
+                        <span class="account-state" id="account-state">SIGN IN TO RESTORE</span>
+                    </div>
                     <button class="btn btn-glitch" id="btn-open-glitch">
                         <svg class="v-icon" viewBox="0 0 24 24">
                             <path
@@ -1642,7 +1667,7 @@
                     game: "SNES Classic",
                     price: "FREE DLC",
                     desc: "Time portal ambient synths, 16-bit epoch drums, and futuristic Blade FX.",
-                    unlocked: true,
+                    unlocked: false,
                     items: [
                         {
                             id: "chrono_portal",
@@ -1670,7 +1695,7 @@
                     game: "SNES Action",
                     price: "FREE DLC",
                     desc: "Charging buster blasts, metallic industrial drum loops, and dash sound FX.",
-                    unlocked: true,
+                    unlocked: false,
                     items: [
                         {
                             id: "mm_charge",
@@ -1696,9 +1721,9 @@
                     id: "dlc_zelda",
                     name: "Zelda: Link to the Past Triforce Kit",
                     game: "Adventure RPG",
-                    price: "FREE DLC",
+                    price: "$4.99",
                     desc: "Secret discovery jingles, fairy sparkles, and subterranean dungeon drums.",
-                    unlocked: true,
+                    unlocked: false,
                     items: [
                         {
                             id: "zelda_secret",
@@ -1871,6 +1896,121 @@
             let pendingPattern = null;
             let selectedTrigger = { trackId: null, step: null };
             let clipboard = null;
+            let clerk = null;
+            let authenticatedUser = null;
+            let dlcEntitlements = new Set();
+
+            function updateAccountUi() {
+                const chip = document.getElementById("account-chip");
+                const button = document.getElementById("btn-account");
+                const label = document.getElementById("account-state");
+                const signedIn = Boolean(authenticatedUser);
+                chip.classList.toggle("signed-in", signedIn);
+                button.innerText = signedIn ? "SIGN OUT" : "ACCOUNT";
+                label.innerText = signedIn
+                    ? `RESTORE READY · ${dlcEntitlements.size} PACK${dlcEntitlements.size === 1 ? "" : "S"}`
+                    : "SIGN IN TO RESTORE";
+            }
+
+            function applyEntitlements(packIds) {
+                dlcEntitlements = new Set(packIds || []);
+                dlcSoundPacks.forEach((pack) => {
+                    pack.unlocked = dlcEntitlements.has(pack.id);
+                });
+                updateAccountUi();
+                renderLibraryKit();
+                if (document.getElementById("dlc-modal").classList.contains("open")) {
+                    renderDlcMarketplace();
+                }
+            }
+
+            async function restoreDlcPurchases() {
+                if (!authenticatedUser) {
+                    applyEntitlements([]);
+                    return;
+                }
+                const response = await fetch("/api/entitlements", {
+                    credentials: "same-origin",
+                });
+                if (!response.ok) throw new Error("Could not restore purchases.");
+                const payload = await response.json();
+                applyEntitlements(payload.packIds);
+                setWorkflowStatus("DLC PURCHASES RESTORED");
+            }
+
+            async function initializeAccount() {
+                try {
+                    const configResponse = await fetch("/api/config");
+                    if (!configResponse.ok) {
+                        throw new Error("Account service unavailable.");
+                    }
+                    const config = await configResponse.json();
+                    if (!config.clerkPublishableKey) {
+                        throw new Error("Account service is not configured.");
+                    }
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement("script");
+                        script.src =
+                            "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js";
+                        script.async = true;
+                        script.crossOrigin = "anonymous";
+                        script.dataset.clerkPublishableKey =
+                            config.clerkPublishableKey;
+                        if (config.clerkProxyUrl) {
+                            script.dataset.clerkProxyUrl =
+                                config.clerkProxyUrl;
+                        }
+                        script.onload = resolve;
+                        script.onerror = () =>
+                            reject(new Error("Account service failed to load."));
+                        document.head.appendChild(script);
+                    });
+                    clerk = window.Clerk;
+                    if (!clerk) throw new Error("Account service unavailable.");
+                    await clerk.load();
+                    authenticatedUser = clerk.user || null;
+                    updateAccountUi();
+                    if (authenticatedUser) await restoreDlcPurchases();
+                    clerk.addListener(({ user }) => {
+                        authenticatedUser = user || null;
+                        restoreDlcPurchases().catch((error) => {
+                            console.warn("DLC entitlement restore failed:", error);
+                        });
+                    });
+
+                    const checkout = new URLSearchParams(window.location.search);
+                    if (checkout.get("checkout") === "success" && checkout.get("session_id")) {
+                        const response = await fetch("/api/checkout/confirm", {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ sessionId: checkout.get("session_id") }),
+                        });
+                        if (!response.ok) throw new Error("Purchase verification is pending.");
+                        await restoreDlcPurchases();
+                        window.history.replaceState({}, "", window.location.pathname);
+                        alert("Purchase verified. Your DLC is now restored to this account.");
+                    } else if (checkout.get("checkout") === "cancelled") {
+                        window.history.replaceState({}, "", window.location.pathname);
+                        setWorkflowStatus("CHECKOUT CANCELLED");
+                    }
+                } catch (error) {
+                    console.warn("Account initialization failed:", error);
+                    updateAccountUi();
+                }
+            }
+
+            document.getElementById("btn-account").onclick = () => {
+                if (!clerk) {
+                    setWorkflowStatus("ACCOUNT SERVICE LOADING");
+                    return;
+                }
+                if (authenticatedUser) {
+                    clerk.signOut({ redirectUrl: window.location.pathname });
+                } else {
+                    clerk.openSignIn();
+                }
+            };
 
             function cloneData(value) {
                 return value == null
@@ -3444,8 +3584,7 @@
                         <div style="font-size:8px; color:var(--text-muted);">${it.desc}</div>
                     </div>
                     <div style="display:flex; gap:2px;">
-                        <button class="btn" style="font-size:7px; padding:2px 5px;" onclick="previewDlcItem('${it.id}')">TEST</button>
-                        ${pack.unlocked ? `<button class="btn" style="font-size:7px; padding:2px 5px; background:var(--accent-cyan); color:white;" onclick="addDlcItemToChannel('${it.id}', '${it.name}')">+ ADD</button>` : ""}
+                        ${pack.unlocked ? `<button class="btn" style="font-size:7px; padding:2px 5px;" onclick="previewDlcItem('${it.id}')">TEST</button><button class="btn" style="font-size:7px; padding:2px 5px; background:var(--accent-cyan); color:white;" onclick="addDlcItemToChannel('${it.id}', '${it.name}')">+ ADD</button>` : '<span style="font-size:7px; color:var(--text-muted); font-weight:bold;">LOCKED</span>'}
                     </div>
                 </div>
             `,
@@ -3459,7 +3598,7 @@
                 </div>
                 <div class="lib-desc">Console: <b>${pack.game}</b> — ${pack.desc}</div>
                 <div style="margin-top:4px;">${itemsHtml}</div>
-                ${!pack.unlocked ? `<button class="btn" style="margin-top:6px; background:var(--accent-pink); color:white; font-size:9px; width:100%; justify-content:center;" onclick="unlockDlcPack('${pack.id}')">UNLOCK & INSTALL DLC PACK</button>` : '<div style="margin-top:6px; font-size:8px; color:var(--accent-green); font-weight:bold; text-align:center;">✓ INSTALLED & UNLOCKED</div>'}
+                ${!pack.unlocked ? `<button class="btn" style="margin-top:6px; background:var(--accent-pink); color:white; font-size:9px; width:100%; justify-content:center;" onclick="unlockDlcPack('${pack.id}')">${pack.price === "FREE DLC" ? "SIGN IN TO CLAIM FREE DLC" : `BUY ${pack.price} · SECURE CHECKOUT`}</button>` : '<div style="margin-top:6px; font-size:8px; color:var(--accent-green); font-weight:bold; text-align:center;">✓ VERIFIED & RESTORED</div>'}
             `;
                     grid.appendChild(card);
                 });
@@ -3471,6 +3610,13 @@
             };
 
             window.addDlcItemToChannel = (id, name) => {
+                const pack = dlcSoundPacks.find((candidate) =>
+                    candidate.items.some((item) => item.id === id),
+                );
+                if (!pack?.unlocked) {
+                    alert("This DLC is locked. Sign in to restore or purchase it.");
+                    return;
+                }
                 let customId = id + "_" + Date.now();
                 let randomColor =
                     "#" + Math.floor(Math.random() * 16777215).toString(16);
@@ -3501,14 +3647,31 @@
                 );
             };
 
-            window.unlockDlcPack = (packId) => {
-                let p = dlcSoundPacks.find((x) => x.id === packId);
-                if (p) {
-                    p.unlocked = true;
-                    renderDlcMarketplace();
-                    alert(
-                        `Congratulations! "${p.name}" has been unlocked and added to your sound library.`,
-                    );
+            window.unlockDlcPack = async (packId) => {
+                const pack = dlcSoundPacks.find((candidate) => candidate.id === packId);
+                if (!pack) return;
+                if (!authenticatedUser || !clerk) {
+                    clerk?.openSignIn();
+                    return;
+                }
+                if (pack.price === "FREE DLC") {
+                    await restoreDlcPurchases();
+                    return;
+                }
+                try {
+                    const response = await fetch("/api/dlc/checkout", {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ packId }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.url) {
+                        throw new Error(payload.error || "Checkout unavailable.");
+                    }
+                    window.location.assign(payload.url);
+                } catch (error) {
+                    alert(error.message || "Unable to start secure checkout.");
                 }
             };
 
@@ -4676,6 +4839,7 @@
             updatePatternDropdown();
             renderTimeline();
             renderRack();
+            initializeAccount();
             document.addEventListener(
                 "pointermove",
                 (event) => {

@@ -1,0 +1,25 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "seed:dlc": "node scripts/seed-dlc-products.js",
+    "test": "node --check server/index.js && node --check server/db.js && node --check server/stripe-client.js && node --check scripts/seed-dlc-products.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@clerk/express": "^2.1.63",
+    "@clerk/shared": "^4.30.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0",
+    "pg": "^8.23.0",
+    "stripe": "^22.5.0",
+    "stripe-replit-sync": "^1.0.0"
+  }
+}
