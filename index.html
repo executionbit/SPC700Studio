@@ -1974,6 +1974,50 @@
             let authenticatedUser = null;
             let dlcEntitlements = new Set();
 
+            function serializeCustomSamples() {
+                return Object.fromEntries(
+                    Object.entries(customAudioBuffers)
+                        .filter(([, buffer]) => buffer && buffer.getChannelData)
+                        .map(([id, buffer]) => [
+                            id,
+                            {
+                                sampleRate: buffer.sampleRate,
+                                channels: Array.from(
+                                    { length: buffer.numberOfChannels },
+                                    (_, channel) =>
+                                        Array.from(buffer.getChannelData(channel)),
+                                ),
+                            },
+                        ]),
+                );
+            }
+
+            async function restoreCustomSamples(samples) {
+                const entries = Object.entries(samples || {});
+                if (!entries.length) return;
+                if (!audio) audio = new AudioEngine();
+                await Promise.all(
+                    entries.map(async ([id, sample]) => {
+                        if (!sample?.channels?.length) return;
+                        const length = sample.channels[0]?.length || 0;
+                        if (!length) return;
+                        const buffer = audio.ctx.createBuffer(
+                            sample.channels.length,
+                            length,
+                            Number(sample.sampleRate) || audio.ctx.sampleRate,
+                        );
+                        sample.channels.forEach((channelData, channel) => {
+                            buffer.copyToChannel(
+                                new Float32Array(channelData),
+                                channel,
+                            );
+                        });
+                        customAudioBuffers[id] = buffer;
+                        audio.registerCustomSample(id, buffer);
+                    }),
+                );
+            }
+
             function updateAccountUi() {
                 const chip = document.getElementById("account-chip");
                 const button = document.getElementById("btn-account");
@@ -4030,6 +4074,15 @@
                 c.innerHTML = "";
                 const missingTracks =
                     window.GhettochipPatchBank?.missingTracks(state.tracks) || [];
+                state.tracks
+                    .filter((track) => track.sampleNeedsRepair)
+                    .forEach((track) => {
+                        missingTracks.push({
+                            trackId: track.id,
+                            trackName: track.name || track.id,
+                            soundId: track.sampleRef || track.id,
+                        });
+                    });
                 const missingByTrackId = new Map(
                     missingTracks.map((missing) => [missing.trackId, missing]),
                 );
@@ -4645,6 +4698,7 @@
                                 id: customId,
                                 name: channelName,
                                 color: randomColor,
+                                sampleRef: customId,
                                 vol: 0.8,
                                 pan: 0,
                                 stepsCount: 32,
@@ -4976,9 +5030,13 @@
 
             document.getElementById("btn-save").onclick = () => {
                 const a = document.createElement("a");
+                const project = {
+                    ...state,
+                    customSamples: serializeCustomSamples(),
+                };
                 a.href =
                     "data:text/json;charset=utf-8," +
-                    encodeURIComponent(JSON.stringify(state));
+                    encodeURIComponent(JSON.stringify(project));
                 a.download = "beat.gcp";
                 a.click();
             };
@@ -4986,9 +5044,13 @@
                 document.getElementById("file-upload").click();
             document.getElementById("file-upload").onchange = (e) => {
                 const reader = new FileReader();
-                reader.onload = (ev) => {
+                reader.onload = async (ev) => {
                     try {
-                        state = JSON.parse(ev.target.result);
+                        const project = JSON.parse(ev.target.result);
+                        const savedSamples = project.customSamples || {};
+                        delete project.customSamples;
+                        state = project;
+                        customAudioBuffers = {};
                         state.patternParameters =
                             state.patternParameters ||
                             Array(state.patterns.length)
@@ -5045,6 +5107,12 @@
                                 audio.updateMix(t.id, "pan", t.pan);
                             });
                         }
+                        await restoreCustomSamples(savedSamples);
+                        state.tracks.forEach((track) => {
+                            if (track.sampleRef && !customAudioBuffers[track.sampleRef]) {
+                                track.sampleNeedsRepair = true;
+                            }
+                        });
                         renderTimeline();
                         renderRack();
                     } catch (err) {

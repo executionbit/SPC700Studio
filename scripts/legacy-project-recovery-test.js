@@ -38,4 +38,17 @@ if (
     throw new Error("The rack does not expose a complete legacy sound repair path.");
 }
 
+for (const marker of [
+    "serializeCustomSamples",
+    "restoreCustomSamples",
+    "customSamples",
+    "sampleRef",
+    "sampleNeedsRepair",
+    "copyToChannel",
+]) {
+    if (!indexSource.includes(marker)) {
+        throw new Error(`Imported sample persistence marker is missing: ${marker}`);
+    }
+}
+
 console.log("Legacy project recovery regression passed.");
