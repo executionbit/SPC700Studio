@@ -47,6 +47,11 @@ for (const marker of [
     "project-label",
     "data-starter-load",
     "data-starter-remix",
+    "btn-publish",
+    "loadPublicBeat",
+    "remixPublicBeat",
+    "includeImportedAudio",
+    "sourceSlug",
 ]) {
     if (!source.includes(marker)) {
         throw new Error(`Starter/remix workflow marker is missing: ${marker}`);

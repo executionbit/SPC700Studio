@@ -1030,6 +1030,33 @@
             .account-chip.signed-in .account-state {
                 color: var(--accent-green);
             }
+            .public-beat-banner {
+                display: none;
+                padding: 8px 12px;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                background: var(--accent-yellow);
+                color: #111;
+                font-size: 11px;
+                font-weight: 800;
+            }
+            .public-beat-banner.open { display: flex; }
+            body.public-playback .editor-only { display: none !important; }
+            body.public-playback .channel-rack,
+            body.public-playback .timeline-grid,
+            body.public-playback .mode-toggle,
+            body.public-playback .knob-row,
+            body.public-playback #btn-starters,
+            body.public-playback #btn-open-library,
+            body.public-playback #btn-open-dlc,
+            body.public-playback #btn-open-glitch,
+            body.public-playback #btn-save,
+            body.public-playback #btn-load,
+            body.public-playback #btn-midi {
+                pointer-events: none;
+                opacity: 0.55;
+            }
             .playhead {
                 outline: 2px solid var(--accent-yellow);
                 outline-offset: 1px;
@@ -1078,6 +1105,10 @@
     </head>
     <body>
         <!-- TRANSPORT -->
+        <div class="panel public-beat-banner" id="public-beat-banner">
+            <span id="public-beat-lineage">PUBLISHED BEAT</span>
+            <button class="btn btn-play" id="btn-remix-public">REMIX THIS BEAT</button>
+        </div>
         <div class="panel">
             <div class="transport-bar">
                 <div class="brand">
@@ -1121,6 +1152,9 @@
                     </button>
                     <button class="btn" id="btn-starters" title="Open starter beats">
                         STARTER
+                    </button>
+                    <button class="btn editor-only" id="btn-publish" title="Publish this beat">
+                        PUBLISH
                     </button>
                     <button class="btn btn-rec" id="btn-export">
                         <svg class="v-icon" viewBox="0 0 24 24">
@@ -1569,6 +1603,30 @@
                         a fresh editable copy labeled with its source.
                     </p>
                     <div id="starter-grid" class="lib-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="publish-modal">
+            <div class="modal-content" style="max-width: 480px">
+                <div class="panel-header">
+                    <span>PUBLISH BEAT</span>
+                    <button class="icon-btn-close" id="btn-close-publish" title="Close">✕</button>
+                </div>
+                <div class="modal-scroll-area">
+                    <p class="chain-help">Create an immutable public playback link. Imported audio stays private unless you explicitly include it.</p>
+                    <label style="display:block; margin:12px 0 6px; font-size:11px; font-weight:bold">TITLE</label>
+                    <input id="publish-title" maxlength="80" style="width:100%; padding:8px">
+                    <label id="publish-audio-consent-row" style="display:none; gap:8px; margin:14px 0; align-items:flex-start; font-size:11px; line-height:1.4">
+                        <input type="checkbox" id="publish-audio-consent">
+                        I have permission to make the imported audio in this beat publicly available.
+                    </label>
+                    <p class="chain-help" id="publish-audio-note"></p>
+                    <button class="btn btn-play" id="btn-confirm-publish" style="margin-top:12px">CREATE PUBLIC LINK</button>
+                    <div id="publish-result" style="display:none; margin-top:12px">
+                        <input id="publish-url" readonly style="width:100%; padding:8px">
+                        <button class="btn" id="btn-copy-publish-url" style="margin-top:6px">COPY LINK</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2096,6 +2154,7 @@
                     songTimeline: [Array(TL_BLOCKS).fill(false)],
                     noteSettings: { key: 0, scale: "chromatic" },
                     projectName: template.name,
+                    starterSource: template.id,
                 };
             }
 
@@ -2105,6 +2164,11 @@
                 label.innerText = state.remixMode
                     ? `REMIX · ${state.projectName || "UNTITLED"}`
                     : state.projectName || "UNTITLED";
+                if (state.sourceTitle) {
+                    label.title = `Remixed from ${state.sourceTitle}`;
+                } else {
+                    label.title = "Current project";
+                }
             }
 
             // Apply theme
@@ -2127,6 +2191,7 @@
             let clerk = null;
             let authenticatedUser = null;
             let dlcEntitlements = new Set();
+            let publicBeat = null;
 
             function serializeCustomSamples() {
                 return Object.fromEntries(
@@ -2288,6 +2353,152 @@
                 return value == null
                     ? value
                     : JSON.parse(JSON.stringify(value));
+            }
+
+            function hasImportedAudio() {
+                return state.tracks.some(
+                    (track) =>
+                        track.sampleRef ||
+                        String(track.id || "").startsWith("custom_"),
+                );
+            }
+
+            function publicProjectPayload(includeImportedAudio) {
+                return {
+                    ...cloneData(state),
+                    customSamples: includeImportedAudio
+                        ? serializeCustomSamples()
+                        : {},
+                };
+            }
+
+            function publishingSource() {
+                if (state.sourceSlug) {
+                    return { sourceKind: "published", sourceSlug: state.sourceSlug };
+                }
+                if (state.starterSource || state.remixOf) {
+                    return { sourceKind: "starter" };
+                }
+                return null;
+            }
+
+            function openPublishModal() {
+                const source = publishingSource();
+                if (!source) {
+                    alert("Load or remix a starter beat before publishing.");
+                    return;
+                }
+                if (!authenticatedUser) {
+                    clerk?.openSignIn();
+                    setWorkflowStatus("SIGN IN TO PUBLISH");
+                    return;
+                }
+                const imported = hasImportedAudio();
+                document.getElementById("publish-title").value =
+                    state.projectName || "Untitled Beat";
+                document.getElementById("publish-audio-consent").checked = false;
+                document.getElementById("publish-audio-consent-row").style.display =
+                    imported ? "flex" : "none";
+                document.getElementById("publish-audio-note").innerText = imported
+                    ? "By default, imported sample channels are removed from the public copy."
+                    : "This beat uses built-in sounds only.";
+                document.getElementById("publish-result").style.display = "none";
+                document.getElementById("publish-modal").classList.add("open");
+            }
+
+            async function publishBeat() {
+                const source = publishingSource();
+                if (!source) return;
+                const includeImportedAudio =
+                    hasImportedAudio() &&
+                    document.getElementById("publish-audio-consent").checked;
+                const button = document.getElementById("btn-confirm-publish");
+                button.disabled = true;
+                try {
+                    const response = await fetch("/api/beats", {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            ...source,
+                            title: document.getElementById("publish-title").value,
+                            includeImportedAudio,
+                            project: publicProjectPayload(includeImportedAudio),
+                        }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || "Unable to publish.");
+                    const url = new URL(payload.url, window.location.origin).href;
+                    document.getElementById("publish-url").value = url;
+                    document.getElementById("publish-result").style.display = "block";
+                    setWorkflowStatus("PUBLIC LINK READY");
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            function applyProjectToUi() {
+                state.patternParameters = state.patternParameters || state.patterns.map(() => ({}));
+                state.patternOctaveOffsets = state.patternOctaveOffsets || state.patterns.map(() => ({}));
+                state.noteSettings = state.noteSettings || { key: 0, scale: "chromatic" };
+                state.spc = { master: 0.85, adsr: 4, echo: 0.2, ...(state.spc || {}) };
+                ensurePatternData();
+                document.documentElement.setAttribute("data-theme", themesList.includes(state.theme) ? state.theme : "sunrise");
+                updateThemeButtonText();
+                document.getElementById("sl-bpm").value = state.bpm;
+                document.getElementById("val-bpm").innerText = state.bpm;
+                document.getElementById("sl-lpf").value = state.lpf;
+                document.getElementById("val-lpf").innerText = state.lpf + "Hz";
+                document.getElementById("sl-dist").value = state.dist;
+                document.getElementById("val-dist").innerText = state.dist + "%";
+                document.getElementById("spc-master").value = state.spc.master;
+                document.getElementById("spc-adsr").value = state.spc.adsr;
+                document.getElementById("spc-echo").value = state.spc.echo;
+                updateProjectLabel();
+                updatePatternDropdown();
+                renderTimeline();
+                renderRack();
+            }
+
+            async function loadPublicBeat() {
+                const match = window.location.pathname.match(/^\/beat\/([^/]+)$/);
+                if (!match) return;
+                const response = await fetch(`/api/beats/${encodeURIComponent(match[1])}`);
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.error || "Published beat unavailable.");
+                publicBeat = payload.beat;
+                state = cloneData(publicBeat.project);
+                const samples = state.customSamples || {};
+                delete state.customSamples;
+                customAudioBuffers = {};
+                await restoreCustomSamples(samples);
+                state.sourceSlug = publicBeat.slug;
+                state.sourceTitle = publicBeat.title;
+                state.projectName = publicBeat.title;
+                applyProjectToUi();
+                document.body.classList.add("public-playback");
+                document.getElementById("public-beat-banner").classList.add("open");
+                document.getElementById("public-beat-lineage").innerText =
+                    publicBeat.source_slug
+                        ? `${publicBeat.title} · REMIX OF ${publicBeat.source_title || "PUBLISHED BEAT"}`
+                        : `${publicBeat.title} · FROM ${String(publicBeat.starter_source || "STARTER").replaceAll("-", " ").toUpperCase()}`;
+                setWorkflowStatus("PUBLIC PLAYBACK READY");
+            }
+
+            function remixPublicBeat() {
+                if (!publicBeat) return;
+                document.body.classList.remove("public-playback");
+                document.getElementById("public-beat-banner").classList.remove("open");
+                state.projectName = `${publicBeat.title} · REMIX`;
+                state.sourceSlug = publicBeat.slug;
+                state.sourceTitle = publicBeat.title;
+                state.remixMode = true;
+                publicBeat = null;
+                window.history.replaceState({}, "", "/");
+                applyProjectToUi();
+                setWorkflowStatus(`REMIX READY · SOURCE: ${state.sourceTitle.toUpperCase()}`);
             }
 
             function ensurePatternData() {
@@ -5370,6 +5581,17 @@
                 document.getElementById("starter-modal").classList.remove("open");
             document.getElementById("btn-close-channel-fx").onclick = () =>
                 document.getElementById("channel-fx-modal").classList.remove("open");
+            document.getElementById("btn-publish").onclick = openPublishModal;
+            document.getElementById("btn-close-publish").onclick = () =>
+                document.getElementById("publish-modal").classList.remove("open");
+            document.getElementById("btn-confirm-publish").onclick = publishBeat;
+            document.getElementById("btn-copy-publish-url").onclick = async () => {
+                await navigator.clipboard.writeText(
+                    document.getElementById("publish-url").value,
+                );
+                setWorkflowStatus("PUBLIC LINK COPIED");
+            };
+            document.getElementById("btn-remix-public").onclick = remixPublicBeat;
             [
                 ["fx-echo", "echo"],
                 ["fx-noise", "noise"],
@@ -5410,55 +5632,9 @@
                         delete project.customSamples;
                         state = project;
                         customAudioBuffers = {};
-                        state.patternParameters =
-                            state.patternParameters ||
-                            Array(state.patterns.length)
-                                .fill(0)
-                                .map(() => ({}));
-                        state.patternOctaveOffsets =
-                            state.patternOctaveOffsets ||
-                            Array(state.patterns.length)
-                                .fill(0)
-                                .map(() => ({}));
-                        state.noteSettings = state.noteSettings || {
-                            key: 0,
-                            scale: "chromatic",
-                        };
-                        state.spc = {
-                            master: 0.85,
-                            adsr: 4,
-                            echo: 0.2,
-                            ...(state.spc || {}),
-                        };
-                        updateProjectLabel();
-                        ensurePatternData();
-                        document.documentElement.setAttribute(
-                            "data-theme",
-                            themesList.includes(state.theme)
-                                ? state.theme
-                                : "sunrise",
-                        );
-                        updateThemeButtonText();
-                        document.getElementById("sl-bpm").value = state.bpm;
-                        document.getElementById("val-bpm").innerText =
-                            state.bpm;
-                        document.getElementById("sl-lpf").value = state.lpf;
-                        document.getElementById("val-lpf").innerText =
-                            state.lpf + "Hz";
-                        document.getElementById("sl-dist").value = state.dist;
-                        document.getElementById("val-dist").innerText =
-                            state.dist + "%";
-                        document.getElementById("spc-master").value =
-                            state.spc.master;
-                        document.getElementById("spc-adsr").value =
-                            state.spc.adsr;
-                        document.getElementById("spc-echo").value =
-                            state.spc.echo;
-                        updatePatternDropdown();
-                        document.getElementById("note-key").value =
-                            state.noteSettings.key || 0;
-                        document.getElementById("note-scale").value =
-                            state.noteSettings.scale || "chromatic";
+                        applyProjectToUi();
+                        document.getElementById("note-key").value = state.noteSettings.key || 0;
+                        document.getElementById("note-scale").value = state.noteSettings.scale || "chromatic";
                         if (audio) {
                             audio.updateFX();
                             audio.updateSpcSettings();
@@ -5495,6 +5671,11 @@
             renderTimeline();
             renderRack();
             initializeAccount();
+            loadPublicBeat().catch((error) => {
+                console.error(error);
+                alert(error.message);
+                window.history.replaceState({}, "", "/");
+            });
             document.addEventListener(
                 "pointermove",
                 (event) => {

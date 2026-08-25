@@ -126,6 +126,51 @@ async function processStripeEntitlement({
     }
 }
 
+async function createPublishedBeat({
+    slug,
+    ownerId,
+    title,
+    project,
+    sourceKind,
+    starterSource = null,
+    sourceSlug = null,
+    includesImportedAudio = false,
+}) {
+    const { rows } = await pool.query(
+        `INSERT INTO published_beats
+            (slug, owner_id, title, project, source_kind, starter_source,
+             source_slug, includes_imported_audio)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
+         RETURNING slug, title, source_kind, starter_source, source_slug,
+                   includes_imported_audio, created_at`,
+        [
+            slug,
+            ownerId,
+            title,
+            JSON.stringify(project),
+            sourceKind,
+            starterSource,
+            sourceSlug,
+            includesImportedAudio,
+        ],
+    );
+    return rows[0];
+}
+
+async function getPublishedBeat(slug) {
+    const { rows } = await pool.query(
+        `SELECT beat.slug, beat.title, beat.project, beat.source_kind,
+                beat.starter_source, beat.source_slug,
+                beat.includes_imported_audio, beat.created_at,
+                source.title AS source_title
+         FROM published_beats beat
+         LEFT JOIN published_beats source ON source.slug = beat.source_slug
+         WHERE beat.slug = $1`,
+        [slug],
+    );
+    return rows[0] || null;
+}
+
 module.exports = {
     pool,
     ensureUser,
@@ -137,4 +182,6 @@ module.exports = {
     saveStripeCustomerId,
     markStripeEvent,
     processStripeEntitlement,
+    createPublishedBeat,
+    getPublishedBeat,
 };

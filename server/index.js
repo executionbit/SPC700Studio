@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("node:path");
+const crypto = require("node:crypto");
 const express = require("express");
 const { clerkMiddleware, getAuth } = require("@clerk/express");
 const {
@@ -18,12 +19,18 @@ const {
     getStripeCustomerId,
     saveStripeCustomerId,
     processStripeEntitlement,
+    createPublishedBeat,
+    getPublishedBeat,
 } = require("./db");
 const {
     getUncachableStripeClient,
     getStripeSync,
     getStripeCredentials,
 } = require("./stripe-client");
+const {
+    STARTER_BEAT_IDS,
+    preparePublicProject,
+} = require("./public-beats");
 
 const app = express();
 const publicRoot = path.resolve(__dirname, "..");
@@ -109,7 +116,7 @@ app.post(
 
 app.use("/api/__clerk", require("./middlewares/clerkProxyMiddleware").clerkProxyMiddleware());
 app.use(clerkMiddleware());
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/api/config", async (_req, res) => {
@@ -253,6 +260,76 @@ app.post("/api/checkout/confirm", requireAuth, async (req, res) => {
 });
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+app.post("/api/beats", requireAuth, async (req, res) => {
+    try {
+        const sourceKind = String(req.body?.sourceKind || "");
+        if (!["starter", "published"].includes(sourceKind)) {
+            return res.status(400).json({
+                error: "Only starter beats and their remixes can be published.",
+            });
+        }
+        if (
+            sourceKind === "starter" &&
+            !STARTER_BEAT_IDS.has(
+                String(req.body?.project?.starterSource || req.body?.project?.remixOf || ""),
+            )
+        ) {
+            return res.status(400).json({ error: "Starter beat source is invalid." });
+        }
+        const includeImportedAudio = req.body?.includeImportedAudio === true;
+        const project = preparePublicProject(
+            req.body?.project,
+            includeImportedAudio,
+        );
+        const title = String(req.body?.title || project.projectName || "Untitled Beat")
+            .trim()
+            .slice(0, 80);
+        if (!title) return res.status(400).json({ error: "A beat title is required." });
+        const sourceSlug =
+            sourceKind === "published"
+                ? String(req.body?.sourceSlug || "").slice(0, 64)
+                : null;
+        if (sourceKind === "published" && !(await getPublishedBeat(sourceSlug))) {
+            return res.status(400).json({ error: "The remix source no longer exists." });
+        }
+        const starterSource =
+            sourceKind === "starter"
+                ? String(project.starterSource || "")
+                : null;
+        await ensureUser(req.userId);
+        const beat = await createPublishedBeat({
+            slug: crypto.randomBytes(9).toString("base64url"),
+            ownerId: req.userId,
+            title,
+            project,
+            sourceKind,
+            starterSource,
+            sourceSlug,
+            includesImportedAudio: includeImportedAudio,
+        });
+        res.status(201).json({ beat, url: `/beat/${beat.slug}` });
+    } catch (error) {
+        console.error("Beat publishing failed:", error.message);
+        res.status(400).json({ error: error.message || "Unable to publish beat." });
+    }
+});
+
+app.get("/api/beats/:slug", async (req, res) => {
+    try {
+        const beat = await getPublishedBeat(String(req.params.slug || ""));
+        if (!beat) return res.status(404).json({ error: "Published beat not found." });
+        res.json({ beat });
+    } catch (error) {
+        console.error("Published beat load failed:", error.message);
+        res.status(500).json({ error: "Unable to load published beat." });
+    }
+});
+
+app.get("/beat/:slug", (_req, res) => {
+    res.sendFile(path.join(publicRoot, "index.html"));
+});
+
 app.use(express.static(publicRoot, { index: "index.html" }));
 
 async function start() {
