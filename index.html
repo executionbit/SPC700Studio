@@ -354,6 +354,37 @@
                 padding: 4px;
                 max-height: 72vh;
             }
+            .published-beat-card {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 10px;
+                border: 1px solid var(--panel-border);
+                border-radius: 5px;
+                background: var(--btn-bg);
+            }
+            .published-beat-card + .published-beat-card {
+                margin-top: 7px;
+            }
+            .published-beat-info {
+                min-width: 0;
+            }
+            .published-beat-title {
+                font-size: 12px;
+                font-weight: bold;
+                overflow-wrap: anywhere;
+            }
+            .published-beat-meta {
+                color: var(--text-muted);
+                font-size: 9px;
+                margin-top: 3px;
+            }
+            .published-beat-actions {
+                display: flex;
+                gap: 5px;
+                flex-shrink: 0;
+            }
 
             .icon-btn-close {
                 background: var(--accent-red);
@@ -1191,6 +1222,7 @@
                         <button class="btn" id="btn-account" title="Sign in to restore purchases">ACCOUNT</button>
                         <span class="account-state" id="account-state">SIGN IN TO RESTORE</span>
                     </div>
+                    <button class="btn" id="btn-published-beats" style="display:none" title="Manage your published links">PUBLISHED LINKS</button>
                     <button class="btn btn-glitch" id="btn-open-glitch">
                         <svg class="v-icon" viewBox="0 0 24 24">
                             <path
@@ -1627,6 +1659,19 @@
                         <input id="publish-url" readonly style="width:100%; padding:8px">
                         <button class="btn" id="btn-copy-publish-url" style="margin-top:6px">COPY LINK</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="published-beats-modal">
+            <div class="modal-content" style="max-width: 620px">
+                <div class="panel-header">
+                    <span>PUBLISHED BEATS</span>
+                    <button class="icon-btn-close" id="btn-close-published-beats" title="Close">✕</button>
+                </div>
+                <div class="modal-scroll-area">
+                    <p class="chain-help">Review the public links you have shared. Unpublishing immediately disables playback and removes the beat data from that link.</p>
+                    <div id="published-beats-list"></div>
                 </div>
             </div>
         </div>
@@ -2241,9 +2286,11 @@
                 const chip = document.getElementById("account-chip");
                 const button = document.getElementById("btn-account");
                 const label = document.getElementById("account-state");
+                const publishedButton = document.getElementById("btn-published-beats");
                 const signedIn = Boolean(authenticatedUser);
                 chip.classList.toggle("signed-in", signedIn);
                 button.innerText = signedIn ? "SIGN OUT" : "ACCOUNT";
+                publishedButton.style.display = signedIn ? "" : "none";
                 label.innerText = signedIn
                     ? `RESTORE READY · ${dlcEntitlements.size} PACK${dlcEntitlements.size === 1 ? "" : "S"}`
                     : "SIGN IN TO RESTORE";
@@ -2273,6 +2320,121 @@
                 const payload = await response.json();
                 applyEntitlements(payload.packIds);
                 setWorkflowStatus("DLC PURCHASES RESTORED");
+            }
+
+            function formatPublishedDate(value) {
+                const date = new Date(value);
+                return Number.isNaN(date.getTime())
+                    ? "DATE UNKNOWN"
+                    : date.toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                      });
+            }
+
+            function renderPublishedBeats(beats) {
+                const list = document.getElementById("published-beats-list");
+                list.replaceChildren();
+                if (!beats.length) {
+                    const empty = document.createElement("p");
+                    empty.className = "chain-help";
+                    empty.innerText = "You have not published any beats yet.";
+                    list.appendChild(empty);
+                    return;
+                }
+                beats.forEach((beat) => {
+                    const card = document.createElement("div");
+                    card.className = "published-beat-card";
+                    const info = document.createElement("div");
+                    info.className = "published-beat-info";
+                    const title = document.createElement("div");
+                    title.className = "published-beat-title";
+                    title.innerText = beat.title;
+                    const meta = document.createElement("div");
+                    meta.className = "published-beat-meta";
+                    meta.innerText = `${formatPublishedDate(beat.created_at)} · ${
+                        beat.includes_imported_audio ? "IMPORTED AUDIO INCLUDED" : "BUILT-IN SOUNDS"
+                    }`;
+                    info.append(title, meta);
+                    const actions = document.createElement("div");
+                    actions.className = "published-beat-actions";
+                    const copy = document.createElement("button");
+                    copy.className = "btn";
+                    copy.innerText = "COPY LINK";
+                    copy.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(
+                                new URL(`/beat/${encodeURIComponent(beat.slug)}`, window.location.origin).href,
+                            );
+                            setWorkflowStatus("PUBLIC LINK COPIED");
+                            copy.innerText = "COPIED";
+                            window.setTimeout(() => (copy.innerText = "COPY LINK"), 1200);
+                        } catch (_error) {
+                            alert("Could not copy the public link.");
+                        }
+                    };
+                    const unpublish = document.createElement("button");
+                    unpublish.className = "btn";
+                    unpublish.innerText = "UNPUBLISH";
+                    unpublish.onclick = () => unpublishPublishedBeat(beat, card);
+                    actions.append(copy, unpublish);
+                    card.append(info, actions);
+                    list.appendChild(card);
+                });
+            }
+
+            async function loadPublishedBeats() {
+                if (!authenticatedUser) return;
+                const response = await fetch("/api/beats", {
+                    credentials: "same-origin",
+                });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.error || "Unable to load published beats.");
+                renderPublishedBeats(payload.beats || []);
+            }
+
+            async function unpublishPublishedBeat(beat, card) {
+                if (!window.confirm(`Unpublish "${beat.title}"? Its public link will stop working immediately.`)) {
+                    return;
+                }
+                const button = card.querySelector(".published-beat-actions button:last-child");
+                button.disabled = true;
+                try {
+                    const response = await fetch(`/api/beats/${encodeURIComponent(beat.slug)}`, {
+                        method: "DELETE",
+                        credentials: "same-origin",
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || "Unable to unpublish beat.");
+                    card.remove();
+                    if (!document.querySelector(".published-beat-card")) {
+                        renderPublishedBeats([]);
+                    }
+                    setWorkflowStatus("BEAT UNPUBLISHED");
+                } catch (error) {
+                    button.disabled = false;
+                    alert(error.message);
+                }
+            }
+
+            async function openPublishedBeats() {
+                if (!authenticatedUser) {
+                    clerk?.openSignIn();
+                    return;
+                }
+                const list = document.getElementById("published-beats-list");
+                list.innerHTML = '<p class="chain-help">LOADING PUBLISHED BEATS…</p>';
+                document.getElementById("published-beats-modal").classList.add("open");
+                try {
+                    await loadPublishedBeats();
+                } catch (error) {
+                    list.innerHTML = "";
+                    const message = document.createElement("p");
+                    message.className = "chain-help";
+                    message.innerText = error.message;
+                    list.appendChild(message);
+                }
             }
 
             async function initializeAccount() {
@@ -2310,6 +2472,10 @@
                     if (authenticatedUser) await restoreDlcPurchases();
                     clerk.addListener(({ user }) => {
                         authenticatedUser = user || null;
+                        if (!authenticatedUser) {
+                            document.getElementById("published-beats-modal").classList.remove("open");
+                        }
+                        updateAccountUi();
                         restoreDlcPurchases().catch((error) => {
                             console.warn("DLC entitlement restore failed:", error);
                         });
@@ -5585,6 +5751,9 @@
             document.getElementById("btn-close-publish").onclick = () =>
                 document.getElementById("publish-modal").classList.remove("open");
             document.getElementById("btn-confirm-publish").onclick = publishBeat;
+            document.getElementById("btn-published-beats").onclick = openPublishedBeats;
+            document.getElementById("btn-close-published-beats").onclick = () =>
+                document.getElementById("published-beats-modal").classList.remove("open");
             document.getElementById("btn-copy-publish-url").onclick = async () => {
                 await navigator.clipboard.writeText(
                     document.getElementById("publish-url").value,

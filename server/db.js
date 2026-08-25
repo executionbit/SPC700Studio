@@ -165,8 +165,31 @@ async function getPublishedBeat(slug) {
                 source.title AS source_title
          FROM published_beats beat
          LEFT JOIN published_beats source ON source.slug = beat.source_slug
-         WHERE beat.slug = $1`,
+         WHERE beat.slug = $1 AND beat.unpublished_at IS NULL`,
         [slug],
+    );
+    return rows[0] || null;
+}
+
+async function listPublishedBeats(ownerId) {
+    const { rows } = await pool.query(
+        `SELECT slug, title, source_kind, starter_source, source_slug,
+                includes_imported_audio, created_at
+         FROM published_beats
+         WHERE owner_id = $1 AND unpublished_at IS NULL
+         ORDER BY created_at DESC`,
+        [ownerId],
+    );
+    return rows;
+}
+
+async function unpublishBeat(ownerId, slug) {
+    const { rows } = await pool.query(
+        `UPDATE published_beats
+         SET unpublished_at = NOW()
+         WHERE owner_id = $1 AND slug = $2 AND unpublished_at IS NULL
+         RETURNING slug`,
+        [ownerId, slug],
     );
     return rows[0] || null;
 }
@@ -184,4 +207,6 @@ module.exports = {
     processStripeEntitlement,
     createPublishedBeat,
     getPublishedBeat,
+    listPublishedBeats,
+    unpublishBeat,
 };

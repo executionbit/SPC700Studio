@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS published_beats (
     starter_source TEXT,
     source_slug TEXT REFERENCES published_beats(slug) ON DELETE SET NULL,
     includes_imported_audio BOOLEAN NOT NULL DEFAULT FALSE,
+    unpublished_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -42,7 +43,8 @@ CREATE INDEX IF NOT EXISTS published_beats_owner_idx
 -- published_beats shape before this schema was finalized.
 ALTER TABLE published_beats
     ADD COLUMN IF NOT EXISTS source_kind TEXT,
-    ADD COLUMN IF NOT EXISTS starter_source TEXT;
+    ADD COLUMN IF NOT EXISTS starter_source TEXT,
+    ADD COLUMN IF NOT EXISTS unpublished_at TIMESTAMPTZ;
 
 UPDATE published_beats
 SET source_kind = CASE

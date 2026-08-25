@@ -21,6 +21,8 @@ const {
     processStripeEntitlement,
     createPublishedBeat,
     getPublishedBeat,
+    listPublishedBeats,
+    unpublishBeat,
 } = require("./db");
 const {
     getUncachableStripeClient,
@@ -262,6 +264,16 @@ app.post("/api/checkout/confirm", requireAuth, async (req, res) => {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
+app.get("/api/beats", requireAuth, async (req, res) => {
+    try {
+        const beats = await listPublishedBeats(req.userId);
+        res.json({ beats });
+    } catch (error) {
+        console.error("Published beat list failed:", error.message);
+        res.status(500).json({ error: "Unable to load published beats." });
+    }
+});
+
 app.post("/api/beats", requireAuth, async (req, res) => {
     try {
         const sourceKind = String(req.body?.sourceKind || "");
@@ -313,6 +325,20 @@ app.post("/api/beats", requireAuth, async (req, res) => {
     } catch (error) {
         console.error("Beat publishing failed:", error.message);
         res.status(400).json({ error: error.message || "Unable to publish beat." });
+    }
+});
+
+app.delete("/api/beats/:slug", requireAuth, async (req, res) => {
+    try {
+        const slug = String(req.params.slug || "");
+        const beat = await unpublishBeat(req.userId, slug);
+        if (!beat) {
+            return res.status(404).json({ error: "Published beat not found." });
+        }
+        res.json({ unpublished: true, slug: beat.slug });
+    } catch (error) {
+        console.error("Published beat unpublish failed:", error.message);
+        res.status(500).json({ error: "Unable to unpublish beat." });
     }
 });
 
