@@ -37,7 +37,8 @@ const publicRoot = path.resolve(__dirname, "..");
 const port = Number(process.env.PORT || 3000);
 
 function effectiveUserId(req) {
-    return getAuth(req)?.userId || null;
+    const authResolver = app.locals.authResolver || getAuth;
+    return authResolver(req)?.userId || null;
 }
 
 function requireAuth(req, res, next) {
@@ -338,7 +339,11 @@ async function start() {
     app.listen(port, () => console.log(`Ghettochip server listening on ${port}`));
 }
 
-start().catch((error) => {
-    console.error("Server startup failed:", error);
-    process.exit(1);
-});
+if (require.main === module) {
+    start().catch((error) => {
+        console.error("Server startup failed:", error);
+        process.exit(1);
+    });
+}
+
+module.exports = { app, start };
