@@ -353,6 +353,12 @@ app.get("/api/beats/:slug", async (req, res) => {
     }
 });
 
+// Keep API typos and missing endpoints from falling through to the HTML shell.
+// Browser clients can now reliably inspect a JSON error response.
+app.use("/api", (_req, res) =>
+    res.status(404).json({ error: "API route not found." }),
+);
+
 app.get("/beat/:slug", (_req, res) => {
     res.sendFile(path.join(publicRoot, "index.html"));
 });

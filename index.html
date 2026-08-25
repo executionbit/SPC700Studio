@@ -1719,6 +1719,7 @@
 
         <script src="sound-patches.js"></script>
         <script src="spc-runtime.js"></script>
+        <script src="public-link-client.js"></script>
         <script>
             // --- ORIGINAL PROCEDURAL SOUND LIBRARY & DLC PACKS ---
             const soundLibraryKits = {
@@ -2593,8 +2594,20 @@
                             project: publicProjectPayload(includeImportedAudio),
                         }),
                     });
-                    const payload = await response.json();
+                    const payload =
+                        await window.GhettochipPublicLinks.readPublishResponse(
+                            response,
+                        );
                     if (!response.ok) throw new Error(payload.error || "Unable to publish.");
+                    if (
+                        !payload ||
+                        typeof payload.url !== "string" ||
+                        !payload.url.startsWith("/beat/")
+                    ) {
+                        throw new Error(
+                            "The public-link service did not return a share link. Refresh the studio and try again.",
+                        );
+                    }
                     const url = new URL(payload.url, window.location.origin).href;
                     document.getElementById("publish-url").value = url;
                     document.getElementById("publish-result").style.display = "block";

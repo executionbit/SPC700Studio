@@ -212,6 +212,12 @@ async function runApiIntegration() {
             req.end("{not-json");
         });
         assert.equal(malformed, 400);
+
+        const missingApiRoute = await request(server, "POST", "/api/not-a-route", {
+            hello: "world",
+        });
+        assert.equal(missingApiRoute.status, 404);
+        assert.deepEqual(missingApiRoute.body, { error: "API route not found." });
         console.log("Public beat API publish/read/remix regression passed.");
     } finally {
         await new Promise((resolve) => server.close(resolve));

@@ -112,6 +112,12 @@ async function assertSharedBeatLoadsAndPlays(page, baseUrl, slug, includesSample
 }
 
 async function main() {
+    if (!fs.existsSync(chromium.executablePath())) {
+        console.log(
+            "Public beat browser regression skipped: Playwright Chromium is not installed in this environment.",
+        );
+        return;
+    }
     const suffix = crypto.randomBytes(8).toString("hex");
     const userId = `test_public_browser_${suffix}`;
     const server = http.createServer(app);
