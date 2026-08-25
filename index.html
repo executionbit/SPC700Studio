@@ -1133,6 +1133,7 @@
                 <div class="btn-group" title="Low-Resource Audio Visualizer">
                     <canvas id="viz-canvas" width="70" height="22"></canvas>
                 </div>
+                <span class="chain-help" id="project-label" title="Current project">UNTITLED</span>
                 <div class="btn-group">
                     <button class="btn btn-library" id="btn-open-library">
                         <svg class="v-icon" viewBox="0 0 24 24">
@@ -2096,6 +2097,14 @@
                     noteSettings: { key: 0, scale: "chromatic" },
                     projectName: template.name,
                 };
+            }
+
+            function updateProjectLabel() {
+                const label = document.getElementById("project-label");
+                if (!label) return;
+                label.innerText = state.remixMode
+                    ? `REMIX · ${state.projectName || "UNTITLED"}`
+                    : state.projectName || "UNTITLED";
             }
 
             // Apply theme
@@ -4300,6 +4309,7 @@
                 document.getElementById("val-lpf").innerText = `${state.lpf}Hz`;
                 document.getElementById("sl-dist").value = state.dist;
                 document.getElementById("val-dist").innerText = `${state.dist}%`;
+                updateProjectLabel();
                 updatePatternDropdown();
                 renderTimeline();
                 renderRack();
@@ -5420,6 +5430,7 @@
                             echo: 0.2,
                             ...(state.spc || {}),
                         };
+                        updateProjectLabel();
                         ensurePatternData();
                         document.documentElement.setAttribute(
                             "data-theme",
@@ -5480,6 +5491,7 @@
             };
 
             updatePatternDropdown();
+            updateProjectLabel();
             renderTimeline();
             renderRack();
             initializeAccount();
