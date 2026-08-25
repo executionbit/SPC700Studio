@@ -1753,6 +1753,23 @@
                 },
             ];
 
+            function validateProceduralPatchCatalog() {
+                const ids = [
+                    ...Object.values(soundLibraryKits)
+                        .flat()
+                        .map((item) => item.id),
+                    ...dlcSoundPacks
+                        .flatMap((pack) => pack.items)
+                        .map((item) => item.id),
+                ];
+                window.GhettochipPatchBank.validate(ids);
+                return ids;
+            }
+
+            // Keep catalog additions fail-fast: an unregistered patch must never
+            // reach a generic oscillator fallback and become silently misvoiced.
+            validateProceduralPatchCatalog();
+
             async function hydrateDlcCatalog() {
                 try {
                     const response = await fetch("/api/dlc/catalog");
@@ -3084,9 +3101,8 @@
                         return;
                     }
 
-                    // Library/DLC channels use a generated channel id, so resolve the
-                    // original sound id before selecting its synthesized voice.
-                    // Synthesized sounds including Library Sound Kits & DLC Packs
+                    // Legacy IDs below are retained for old saved projects. New
+                    // library/DLC sounds must have a recipe in the shared patch bank.
                     switch (soundId) {
                         case "obsolete_patch_01":
                         case "obsolete_patch_02": {

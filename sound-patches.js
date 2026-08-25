@@ -73,25 +73,25 @@
         };
     }
 
-    function fallbackRecipe(id) {
-        let hash = 2166136261;
-        for (const char of String(id)) {
-            hash ^= char.charCodeAt(0);
-            hash = Math.imul(hash, 16777619);
-        }
-        const choices = ["lead", "bell", "pad", "fx"];
-        return define(choices[Math.abs(hash) % choices.length], hash, {
-            duration: 0.24 + (Math.abs(hash) % 24) / 100,
-            tone: 220 + (Math.abs(hash) % 900),
-        });
+    function recipeFor(id) {
+        return PATCHES[id] || null;
     }
 
-    function recipeFor(id) {
-        return PATCHES[id] || fallbackRecipe(id);
+    function validate(ids) {
+        const missing = [...new Set(ids)].filter((id) => !PATCHES[id]);
+        if (missing.length) {
+            throw new Error(
+                `Missing procedural recipes for patch IDs: ${missing.join(", ")}`,
+            );
+        }
+        return true;
     }
 
     function render(id, sampleRate = 32000) {
         const recipe = recipeFor(id);
+        if (!recipe) {
+            throw new Error(`No procedural recipe exists for patch "${id}".`);
+        }
         const frameCount = Math.max(48, Math.round(recipe.duration * sampleRate));
         const output = new Float32Array(frameCount);
         const random = seededRandom(recipe.variation * 7919 + frameCount);
@@ -187,7 +187,9 @@
     window.GhettochipPatchBank = {
         createBuffer,
         has: (id) => Boolean(PATCHES[id]),
+        list: () => Object.keys(PATCHES),
         recipeFor,
         render,
+        validate,
     };
 })();
