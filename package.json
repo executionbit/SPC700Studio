@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "seed:dlc": "node scripts/seed-dlc-products.js",
-    "test": "node --check server/index.js && node --check server/db.js && node --check server/public-beats.js && node --check server/stripe-client.js && node --check scripts/seed-dlc-products.js && node --check scripts/public-beats-db-test.js && node scripts/audio-smoke-test.js && node scripts/dlc-catalog-test.js && node scripts/legacy-project-recovery-test.js && node scripts/starter-beats-test.js && node scripts/public-beats-test.js && node scripts/public-beats-db-test.js && node scripts/stripe-webhook-retry-test.js"
+    "test": "node --check server/index.js && node --check server/db.js && node --check server/public-beats.js && node --check server/stripe-client.js && node --check scripts/seed-dlc-products.js && node --check scripts/public-beats-db-test.js && node --check scripts/public-beats-browser-test.js && node scripts/audio-smoke-test.js && node scripts/dlc-catalog-test.js && node scripts/legacy-project-recovery-test.js && node scripts/starter-beats-test.js && node scripts/public-beats-test.js && node scripts/public-beats-db-test.js && node scripts/public-beats-browser-test.js && node scripts/stripe-webhook-retry-test.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +19,7 @@
     "express": "^5.2.1",
     "http-proxy-middleware": "^4.2.0",
     "pg": "^8.23.0",
+    "playwright": "^1.62.1",
     "stripe": "^22.5.0",
     "stripe-replit-sync": "^1.0.0"
   }
