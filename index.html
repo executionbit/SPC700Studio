@@ -1441,6 +1441,9 @@
                         <div class="lib-tab" data-kit="nocturne">
                             ✦ Neon Motion Kit
                         </div>
+                        <div class="lib-tab" data-kit="instruments">
+                            ♫ Instruments
+                        </div>
                         <div class="lib-tab" data-kit="dlc">
                             🧩 Installed DLC
                         </div>
@@ -1720,6 +1723,7 @@
         <script src="sound-patches.js"></script>
         <script src="spc-runtime.js"></script>
         <script src="public-link-client.js"></script>
+        <script src="midi-import.js"></script>
         <script>
             // --- ORIGINAL PROCEDURAL SOUND LIBRARY & DLC PACKS ---
             const soundLibraryKits = {
@@ -1836,6 +1840,24 @@
                         category: "Synth Lead",
                         desc: "Compact bell-like pluck for arpeggiated lines.",
                     },
+                ],
+                instruments: [
+                    { id: "gm_piano", name: "Studio Piano", category: "Keys", desc: "Layered struck piano voice for chords and melody." },
+                    { id: "gm_mallet", name: "Crystal Mallet", category: "Mallets", desc: "Bright chromatic percussion with a clean decay." },
+                    { id: "gm_organ", name: "Drawbar Organ", category: "Organ", desc: "Sustained harmonic organ voice." },
+                    { id: "gm_guitar", name: "Pulse Guitar", category: "Guitar", desc: "Plucked string voice for rhythm and leads." },
+                    { id: "gm_bass", name: "Electric Bass", category: "Bass", desc: "Full low-register voice for MIDI bass parts." },
+                    { id: "gm_strings", name: "String Section", category: "Strings", desc: "Slow-blooming bowed ensemble." },
+                    { id: "gm_ensemble", name: "Warm Ensemble", category: "Ensemble", desc: "Wide sustained orchestral layer." },
+                    { id: "gm_brass", name: "Brass Section", category: "Horns", desc: "Bold stacked horn voice with a rounded attack." },
+                    { id: "gm_reed", name: "Reed Solo", category: "Reeds", desc: "Expressive saxophone and reed-style lead." },
+                    { id: "gm_flute", name: "Air Flute", category: "Winds", desc: "Breathy pipe voice for light melodic lines." },
+                    { id: "gm_synth_lead", name: "Vector Lead", category: "Synth", desc: "Focused electronic lead voice." },
+                    { id: "gm_synth_pad", name: "Cloud Pad", category: "Synth", desc: "Long evolving harmonic bed." },
+                    { id: "gm_synth_fx", name: "Motion FX", category: "Effects", desc: "Animated synthetic effect voice." },
+                    { id: "gm_pluck", name: "World Pluck", category: "Plucked", desc: "Short bright pluck for folk-style parts." },
+                    { id: "gm_percussion", name: "Orchestral Percussion", category: "Percussion", desc: "Tuned ensemble percussion voice." },
+                    { id: "gm_drums", name: "General Drum Kit", category: "Drum Kit", desc: "Balanced kit voice for MIDI drum tracks." },
                 ],
             };
 
@@ -1975,7 +1997,14 @@
 
             // --- STATE MANAGEMENT ---
             const TOTAL_STEPS = 32,
-                TL_BLOCKS = 16;
+                DEFAULT_TL_BLOCKS = 16;
+            const timelineBlockCount = () =>
+                state?.timelineLength
+                    ? Math.max(1, Number(state.timelineLength))
+                    : Math.max(
+                          DEFAULT_TL_BLOCKS,
+                          ...(state?.songTimeline || []).map((row) => row.length),
+                      );
             let themesList = ["sunrise", "tide", "nocturne", "dark"];
             let themeNames = {
                 sunrise: "Sunrise Rhythm",
@@ -2103,7 +2132,7 @@
                     })),
                 songTimeline: Array(4)
                     .fill(0)
-                    .map(() => Array(TL_BLOCKS).fill(false)),
+                    .map(() => Array(DEFAULT_TL_BLOCKS).fill(false)),
                 noteSettings: { key: 0, scale: "chromatic" },
             };
 
@@ -2198,7 +2227,7 @@
                         crusher: Array(TOTAL_STEPS).fill(false),
                         gater: Array(TOTAL_STEPS).fill(false),
                     }],
-                    songTimeline: [Array(TL_BLOCKS).fill(false)],
+                    songTimeline: [Array(DEFAULT_TL_BLOCKS).fill(false)],
                     noteSettings: { key: 0, scale: "chromatic" },
                     projectName: template.name,
                     starterSource: template.id,
@@ -2682,6 +2711,14 @@
             }
 
             function ensurePatternData() {
+                if (!Array.isArray(state.patternMidiNotes))
+                    state.patternMidiNotes = [];
+                while (state.patternMidiNotes.length < state.patterns.length)
+                    state.patternMidiNotes.push({});
+                if (!Array.isArray(state.midiEvents))
+                    state.midiEvents = [];
+                while (state.midiEvents.length < state.patterns.length)
+                    state.midiEvents.push({});
                 if (!Array.isArray(state.patternParameters))
                     state.patternParameters = [];
                 while (state.patternParameters.length < state.patterns.length)
@@ -2852,7 +2889,8 @@
                     row.map(() => false),
                 );
                 const patternCount = Math.min(16, state.patterns.length);
-                for (let block = 0; block < TL_BLOCKS; block++) {
+                const blockCount = timelineBlockCount();
+                for (let block = 0; block < blockCount; block++) {
                     const patternIndex = Math.floor(
                         Math.random() * patternCount,
                     );
@@ -2860,7 +2898,7 @@
                 }
                 renderTimeline();
                 setWorkflowStatus(
-                    `RANDOMIZED ${TL_BLOCKS}-BLOCK PATTERN CHAIN`,
+                    `RANDOMIZED ${blockCount}-BLOCK PATTERN CHAIN`,
                 );
             }
 
@@ -3726,7 +3764,13 @@
                 registerCustomSample(id, buffer) {
                     this.spc?.registerSample(id, buffer);
                 }
-                playProceduralPatch(soundId, destination, time, pitchMod) {
+                playProceduralPatch(
+                    soundId,
+                    destination,
+                    time,
+                    pitchMod,
+                    durationSeconds = 0,
+                ) {
                     if (!window.GhettochipPatchBank) return false;
                     let buffer = this.patchBuffers.get(soundId);
                     if (!buffer) {
@@ -3739,6 +3783,31 @@
                     const source = this.ctx.createBufferSource();
                     source.buffer = buffer;
                     source.playbackRate.value = pitchMod;
+                    const recipe = window.GhettochipPatchBank.recipeFor(soundId);
+                    const sustained = [
+                        "organ",
+                        "strings",
+                        "brass",
+                        "reed",
+                        "flute",
+                        "pad",
+                    ].includes(recipe?.kind);
+                    if (sustained && durationSeconds > 0) {
+                        const envelope = this.ctx.createGain();
+                        const end = time + Math.max(0.04, durationSeconds);
+                        envelope.gain.setValueAtTime(0.9, time);
+                        envelope.gain.setValueAtTime(
+                            0.9,
+                            Math.max(time, end - 0.035),
+                        );
+                        envelope.gain.linearRampToValueAtTime(0, end);
+                        envelope.connect(destination);
+                        source.loop = true;
+                        source.connect(envelope);
+                        source.start(time);
+                        source.stop(end);
+                        return true;
+                    }
                     source.connect(destination);
                     source.start(time);
                     return true;
@@ -3836,7 +3905,15 @@
                     // expanded catalog never exhausts the S-DSP's finite APU RAM.
                     // The same deterministic recipe bank still drives the core
                     // S-DSP voices and this full-duration browser path.
-                    if (this.playProceduralPatch(soundId, dest, t, pitchMod)) {
+                    if (
+                        this.playProceduralPatch(
+                            soundId,
+                            dest,
+                            t,
+                            pitchMod,
+                            Number(params.durationSeconds || 0),
+                        )
+                    ) {
                         return;
                     }
 
@@ -4514,7 +4591,8 @@
                 let rulerBlocks = document.createElement("div");
                 rulerBlocks.className = "tl-ruler-blocks";
 
-                for (let b = 0; b < TL_BLOCKS; b++) {
+                const blockCount = timelineBlockCount();
+                for (let b = 0; b < blockCount; b++) {
                     let num = document.createElement("div");
                     num.className = "tl-ruler-num";
                     if (currentBlock === b && isSongMode)
@@ -4548,7 +4626,11 @@
                     let row = document.createElement("div");
                     row.className = "tl-row";
                     let color = trackColors[p % trackColors.length];
-                    row.innerHTML = `<div class="tl-label" style="color:${color}">PAT ${p + 1}</div>`;
+                    const patternName =
+                        state.patternNames && state.patternNames[p]
+                            ? state.patternNames[p]
+                            : `PAT ${p + 1}`;
+                    row.innerHTML = `<div class="tl-label" style="color:${color}">${patternName}</div>`;
                     const patternLabel = row.querySelector(".tl-label");
                     if (p === currentPattern)
                         patternLabel.classList.add("queued");
@@ -4558,7 +4640,7 @@
                     patternLabel.onclick = () => queuePattern(p);
                     let blocks = document.createElement("div");
                     blocks.className = "tl-blocks";
-                    for (let b = 0; b < TL_BLOCKS; b++) {
+                    for (let b = 0; b < blockCount; b++) {
                         let blk = document.createElement("div");
                         blk.className = "tl-block";
                         if (state.songTimeline[p][b])
@@ -4635,7 +4717,7 @@
                         crusher: Array(TOTAL_STEPS).fill(false),
                         gater: Array(TOTAL_STEPS).fill(false),
                     });
-                    state.songTimeline.push(Array(TL_BLOCKS).fill(false));
+                    state.songTimeline.push(Array(blockCount).fill(false));
 
                     updatePatternDropdown();
                     renderTimeline();
@@ -5188,7 +5270,11 @@
             }
 
             function advanceNote() {
-                const spb = 60.0 / state.bpm;
+                const absoluteStep = currentBlock * TOTAL_STEPS + currentStep;
+                const tempoEvent = (state.midiTempoSteps || [])
+                    .filter((event) => event.step <= absoluteStep)
+                    .at(-1);
+                const spb = 60.0 / (tempoEvent?.bpm || state.bpm);
                 nextNoteTime += 0.25 * spb;
                 currentStep++;
                 if (currentStep >= TOTAL_STEPS) {
@@ -5196,7 +5282,7 @@
                     applyQueuedPattern();
                     if (isSongMode) {
                         currentBlock++;
-                        if (currentBlock >= TL_BLOCKS) {
+                        if (currentBlock >= timelineBlockCount()) {
                             if (isRecording) stopRecording();
                             currentBlock = 0;
                         }
@@ -5205,7 +5291,7 @@
             }
 
             function scheduleStep(step, block, time) {
-                let activePat = currentPattern;
+                let activePat = isSongMode ? null : currentPattern;
                 if (isSongMode) {
                     for (let p = 0; p < state.songTimeline.length; p++) {
                         if (
@@ -5214,6 +5300,10 @@
                         )
                             activePat = p;
                     }
+                }
+                if (activePat == null) {
+                    setWorkflowStatus(`PLAYING EMPTY BLOCK ${block + 1}`);
+                    return;
                 }
                 ensurePatternData();
                 if (isPlaying) {
@@ -5246,6 +5336,10 @@
                         let midiNotesObj =
                             state.patternMidiNotes[activePat] &&
                             state.patternMidiNotes[activePat][t.id];
+                        let midiEventsObj =
+                            state.midiEvents &&
+                            state.midiEvents[activePat] &&
+                            state.midiEvents[activePat][t.id];
                         let playedFromPianoRoll = false;
                         const triggerParams = getTriggerParameters(
                             activePat,
@@ -5258,7 +5352,36 @@
                                 0,
                         );
 
-                        if (midiNotesObj) {
+                        if (midiEventsObj) {
+                            midiEventsObj
+                                .filter((event) => event.step === trackStep)
+                                .forEach((event) => {
+                                    const pitch =
+                                        Math.pow(2, (event.note - 69) / 12) *
+                                        (isRev ? 0.5 : isCrush ? 2.0 : 1.0);
+                                    audio.trigger(
+                                        t.id,
+                                        time,
+                                        pitch,
+                                        {
+                                            ...triggerParams,
+                                            volume:
+                                                (((event.velocity || 96) / 127) -
+                                                    1) *
+                                                0.7,
+                                            durationSeconds:
+                                                window.GhettochipMidi.durationSeconds(
+                                                    block * TOTAL_STEPS +
+                                                        trackStep,
+                                                    event.durationSteps || 1,
+                                                    state.midiTempoSteps,
+                                                    state.bpm,
+                                                ),
+                                        },
+                                    );
+                                    playedFromPianoRoll = true;
+                                });
+                        } else if (midiNotesObj) {
                             for (let pIdx = 0; pIdx < 12; pIdx++) {
                                 if (
                                     midiNotesObj[pIdx] &&
@@ -5454,122 +5577,7 @@
             };
 
             // --- STANDARD MIDI FILE IMPORT ---
-            // MIDI is event data, not audio, so it is parsed into the active pattern's
-            // 12-row piano roll and assigned to new playable lead channels.
-            function parseMidiFile(arrayBuffer) {
-                const bytes = new Uint8Array(arrayBuffer);
-                const view = new DataView(arrayBuffer);
-                let pos = 0;
-                const text = (offset, length) =>
-                    String.fromCharCode(
-                        ...bytes.subarray(offset, offset + length),
-                    );
-                const u16 = () => {
-                    if (pos + 2 > bytes.length)
-                        throw new Error("Unexpected end of MIDI file");
-                    const n = view.getUint16(pos);
-                    pos += 2;
-                    return n;
-                };
-                const u32 = () => {
-                    if (pos + 4 > bytes.length)
-                        throw new Error("Unexpected end of MIDI file");
-                    const n = view.getUint32(pos);
-                    pos += 4;
-                    return n;
-                };
-                const varLen = (end) => {
-                    let value = 0,
-                        count = 0;
-                    while (pos < end && count++ < 4) {
-                        const byte = bytes[pos++];
-                        value = (value << 7) | (byte & 0x7f);
-                        if (!(byte & 0x80)) return value;
-                    }
-                    throw new Error("Invalid MIDI variable-length value");
-                };
-
-                if (text(0, 4) !== "MThd")
-                    throw new Error("Not a Standard MIDI File");
-                pos = 4;
-                const headerLength = u32();
-                if (headerLength < 6 || pos + headerLength > bytes.length)
-                    throw new Error("Invalid MIDI header");
-                const format = u16(),
-                    trackCount = u16(),
-                    division = u16();
-                pos = 8 + headerLength;
-                if (format === 2)
-                    throw new Error("Type 2 MIDI files are not supported");
-
-                const tracks = [];
-                for (
-                    let trackIndex = 0;
-                    trackIndex < trackCount && pos + 8 <= bytes.length;
-                    trackIndex++
-                ) {
-                    if (text(pos, 4) !== "MTrk")
-                        throw new Error("Invalid MIDI track");
-                    pos += 4;
-                    const trackLength = u32();
-                    const end = Math.min(bytes.length, pos + trackLength);
-                    let tick = 0,
-                        runningStatus = 0,
-                        maxTick = 0;
-                    const notes = [];
-
-                    while (pos < end) {
-                        tick += varLen(end);
-                        if (pos >= end) break;
-                        let status = bytes[pos++];
-                        if (status < 0x80) {
-                            if (!runningStatus)
-                                throw new Error("Invalid MIDI running status");
-                            pos--;
-                            status = runningStatus;
-                        } else if (status < 0xf0) {
-                            runningStatus = status;
-                        }
-
-                        if (status === 0xff) {
-                            if (pos >= end) break;
-                            pos++; // meta event type
-                            const length = varLen(end);
-                            pos = Math.min(end, pos + length);
-                            continue;
-                        }
-                        if (status === 0xf0 || status === 0xf7) {
-                            const length = varLen(end);
-                            pos = Math.min(end, pos + length);
-                            continue;
-                        }
-
-                        const command = status & 0xf0;
-                        const dataLength =
-                            command === 0xc0 || command === 0xd0 ? 1 : 2;
-                        if (pos + dataLength > end)
-                            throw new Error("Truncated MIDI event");
-                        const note = bytes[pos++];
-                        const velocity = dataLength === 2 ? bytes[pos++] : 0;
-                        if (command === 0x90 && velocity > 0)
-                            notes.push({ note, tick });
-                        maxTick = Math.max(maxTick, tick);
-                    }
-                    pos = end;
-                    if (notes.length) tracks.push({ notes, maxTick });
-                }
-
-                if (!tracks.length)
-                    throw new Error("No note events found in MIDI file");
-                const songTicks = Math.max(
-                    1,
-                    ...tracks.map((track) => track.maxTick),
-                );
-                return { tracks, songTicks, division };
-            }
-
-            function addMidiTrack(trackIndex, imported, filename) {
-                const customId = `midi_${Date.now()}_${trackIndex}`;
+            function importMidiArrangement(imported, filename) {
                 const colors = [
                     "#00a6a6",
                     "#ef6c00",
@@ -5577,45 +5585,145 @@
                     "#00838f",
                     "#d81b60",
                 ];
-                const track = {
-                    id: customId,
-                    name: `MIDI ${trackIndex + 1}`,
-                    soundId: "lead",
-                    color: colors[trackIndex % colors.length],
-                    vol: 0.65,
-                    pan: 0,
-                    stepsCount: TOTAL_STEPS,
-                };
-                state.tracks.push(track);
-                state.patterns.forEach(
-                    (pattern) =>
-                        (pattern[customId] = Array(TOTAL_STEPS).fill(false)),
-                );
-                state.patternMidiNotes.forEach((pattern) => {
-                    pattern[customId] = Array(12)
-                        .fill(0)
-                        .map(() => Array(TOTAL_STEPS).fill(false));
-                });
-
-                const notes = state.patternMidiNotes[currentPattern][customId];
-                imported.notes.forEach((event) => {
-                    const step = Math.min(
-                        TOTAL_STEPS - 1,
-                        Math.floor(
-                            (event.tick / Math.max(1, imported.songTicks)) *
-                                TOTAL_STEPS,
+                const { blockCount } =
+                    window.GhettochipMidi.arrangementLength(
+                        imported.songTicks,
+                        imported.division,
+                        TOTAL_STEPS,
+                        Math.max(
+                            0,
+                            ...imported.tracks.flatMap((track) =>
+                                track.notes.map((event) => event.tick),
+                            ),
                         ),
                     );
-                    // The piano roll is B5..C5 (MIDI 83..72). Clamp other octaves
-                    // into that visible range while preserving pitch direction.
-                    const row = Math.max(0, Math.min(11, 83 - event.note));
-                    notes[row][step] = true;
-                    state.patterns[currentPattern][customId][step] = true;
-                });
+                const timelineWidth = blockCount;
+                const retainedTracks = state.tracks.filter(
+                    (track) => !String(track.id).startsWith("midi_"),
+                );
+                const stamp = Date.now();
+                const midiTracks = imported.tracks.map((source, index) => ({
+                    id: `midi_${stamp}_${index}`,
+                    name: source.name.substring(0, 28).toUpperCase(),
+                    soundId: source.soundId,
+                    midiProgram: source.program,
+                    midiChannel: source.channel,
+                    color: colors[index % colors.length],
+                    vol: 0.68,
+                    pan: imported.tracks.length > 1
+                        ? -0.55 + (index / (imported.tracks.length - 1)) * 1.1
+                        : 0,
+                    stepsCount: TOTAL_STEPS,
+                }));
+                state.tracks = [...retainedTracks, ...midiTracks];
+                state.patterns = [];
+                state.patternMutes = [];
+                state.patternMidiNotes = [];
+                state.patternParameters = [];
+                state.patternOctaveOffsets = [];
+                state.midiEvents = [];
+                state.glitchPatterns = [];
+                state.songTimeline = [];
+                state.patternNames = [];
+                state.timelineLength = blockCount;
+                state.midiTempoSteps = (imported.tempoEvents || []).map(
+                    (event) => ({
+                        step: window.GhettochipMidi.arrangementPosition(
+                            event.tick,
+                            imported.division,
+                            TOTAL_STEPS,
+                        ).absoluteStep,
+                        bpm: event.bpm,
+                    }),
+                );
 
+                for (let block = 0; block < blockCount; block += 1) {
+                    const pattern = {};
+                    const pianoRoll = {};
+                    const events = {};
+                    state.tracks.forEach((track) => {
+                        pattern[track.id] = Array(TOTAL_STEPS).fill(false);
+                    });
+                    midiTracks.forEach((track) => {
+                        pianoRoll[track.id] = Array.from(
+                            { length: 12 },
+                            () => Array(TOTAL_STEPS).fill(false),
+                        );
+                        events[track.id] = [];
+                    });
+                    state.patterns.push(pattern);
+                    state.patternMutes.push({});
+                    state.patternMidiNotes.push(pianoRoll);
+                    state.patternParameters.push({});
+                    state.patternOctaveOffsets.push({});
+                    state.midiEvents.push(events);
+                    state.glitchPatterns.push({
+                        tapestop: Array(TOTAL_STEPS).fill(false),
+                        retrigger: Array(TOTAL_STEPS).fill(false),
+                        reverser: Array(TOTAL_STEPS).fill(false),
+                        crusher: Array(TOTAL_STEPS).fill(false),
+                        gater: Array(TOTAL_STEPS).fill(false),
+                    });
+                    const timelineRow = Array(timelineWidth).fill(false);
+                    timelineRow[block] = true;
+                    state.songTimeline.push(timelineRow);
+                    state.patternNames.push(`MIDI ${block + 1}`);
+                }
+
+                imported.tracks.forEach((source, trackIndex) => {
+                    const trackId = midiTracks[trackIndex].id;
+                    source.notes.forEach((event) => {
+                        const position =
+                            window.GhettochipMidi.arrangementPosition(
+                                event.tick,
+                                imported.division,
+                                TOTAL_STEPS,
+                            );
+                        const block = Math.min(
+                            blockCount - 1,
+                            position.block,
+                        );
+                        const step = position.step;
+                        state.patterns[block][trackId][step] = true;
+                        state.midiEvents[block][trackId].push({
+                            step,
+                            note: event.note,
+                            velocity: event.velocity,
+                            durationSteps: Math.max(
+                                1,
+                                Math.round(
+                                    (event.duration / imported.division) * 4,
+                                ),
+                            ),
+                        });
+                        const row = Math.max(0, Math.min(11, 83 - event.note));
+                        state.patternMidiNotes[block][trackId][row][step] = true;
+                    });
+                });
+                state.bpm = imported.bpm;
+                state.projectName = filename.replace(/\.[^.]+$/, "");
+                state.midiImport = {
+                    filename,
+                    trackCount: imported.tracks.length,
+                    blockCount,
+                    songTicks: imported.songTicks,
+                    division: imported.division,
+                };
+                currentPattern = 0;
+                currentBlock = 0;
+                isSongMode = true;
+                document.querySelectorAll(".mode-toggle div").forEach((button) => {
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.mode === "song",
+                    );
+                });
                 if (!audio) audio = new AudioEngine();
-                audio.initChannelNode(customId);
-                return track;
+                midiTracks.forEach((track) => audio.initChannelNode(track.id));
+                applyProjectToUi();
+                setWorkflowStatus(
+                    `MIDI PLAYLIST READY · ${imported.tracks.length} INSTRUMENTS · ${blockCount} BLOCKS`,
+                );
             }
 
             document.getElementById("btn-midi").onclick = () =>
@@ -5626,17 +5734,18 @@
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     try {
-                        const imported = parseMidiFile(ev.target.result);
-                        imported.tracks.forEach((track, index) =>
-                            addMidiTrack(
-                                index,
-                                { ...track, songTicks: imported.songTicks },
-                                file.name,
-                            ),
-                        );
-                        renderRack();
+                        const imported =
+                            window.GhettochipMidi.parseMidiFile(ev.target.result);
+                        if (
+                            !window.confirm(
+                                `Import "${file.name}" as a full-song playlist? This replaces the current pattern arrangement.`,
+                            )
+                        ) {
+                            return;
+                        }
+                        importMidiArrangement(imported, file.name);
                         alert(
-                            `Imported ${imported.tracks.length} MIDI track${imported.tracks.length === 1 ? "" : "s"} from "${file.name}".`,
+                            `Imported ${imported.tracks.length} instrument track${imported.tracks.length === 1 ? "" : "s"} across ${state.midiImport.blockCount} playlist block${state.midiImport.blockCount === 1 ? "" : "s"}.`,
                         );
                     } catch (err) {
                         alert(`MIDI import failed: ${err.message}`);

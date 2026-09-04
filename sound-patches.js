@@ -18,6 +18,23 @@
         arp: define("bell", 7, { duration: 0.34, tone: 660 }),
         noise: define("shaker", 8, { duration: 0.18, tone: 2100 }),
 
+        gm_piano: define("piano", 121, { duration: 0.72, tone: 440 }),
+        gm_mallet: define("mallet", 122, { duration: 0.58, tone: 440 }),
+        gm_organ: define("organ", 123, { duration: 0.82, tone: 440 }),
+        gm_guitar: define("guitar", 124, { duration: 0.54, tone: 440 }),
+        gm_bass: define("bass", 125, { duration: 0.56, tone: 110 }),
+        gm_strings: define("strings", 126, { duration: 0.9, tone: 440 }),
+        gm_ensemble: define("strings", 127, { duration: 1.05, tone: 330 }),
+        gm_brass: define("brass", 128, { duration: 0.72, tone: 440 }),
+        gm_reed: define("reed", 129, { duration: 0.68, tone: 440 }),
+        gm_flute: define("flute", 130, { duration: 0.78, tone: 440 }),
+        gm_synth_lead: define("lead", 131, { duration: 0.5, tone: 440 }),
+        gm_synth_pad: define("pad", 132, { duration: 1.1, tone: 440 }),
+        gm_synth_fx: define("fx", 133, { duration: 0.72, tone: 440 }),
+        gm_pluck: define("guitar", 134, { duration: 0.42, tone: 440 }),
+        gm_percussion: define("tom", 135, { duration: 0.38, tone: 160 }),
+        gm_drums: define("snare", 136, { duration: 0.24, tone: 190, snap: 0.66 }),
+
         sun_kick: define("kick", 11, { duration: 0.32, tone: 61, snap: 0.24 }),
         ember_snare: define("snare", 12, { duration: 0.24, tone: 205, snap: 0.7 }),
         prism_hat: define("hat", 13, { duration: 0.08, tone: 7900, snap: 0.82 }),
@@ -177,6 +194,65 @@
                         sine(tone * 0.5) * 0.14) *
                     Math.sin(Math.min(1, position * 8) * Math.PI * 0.5) *
                     Math.exp(-position * 1.5);
+            } else if (recipe.kind === "piano") {
+                value =
+                    (sine(tone) * 0.52 +
+                        sine(tone * 2) * 0.22 +
+                        sine(tone * 3.01) * 0.1) *
+                    Math.exp(-position * 4.4) *
+                    Math.min(1, position * 40);
+            } else if (recipe.kind === "mallet") {
+                value =
+                    (sine(tone) * 0.5 +
+                        sine(tone * 3.98) * 0.3 +
+                        sine(tone * 6.03) * 0.12) *
+                    Math.exp(-position * 5.8);
+            } else if (recipe.kind === "organ") {
+                value =
+                    (sine(tone) * 0.46 +
+                        sine(tone * 2) * 0.23 +
+                        sine(tone * 3) * 0.12 +
+                        sine(tone * 4) * 0.06) *
+                    Math.sin(Math.min(1, position * 24) * Math.PI * 0.5) *
+                    Math.exp(-position * 0.55);
+            } else if (recipe.kind === "guitar") {
+                const phase = (tone * time) % 1;
+                value =
+                    ((phase < 0.5 ? 1 : -1) * 0.28 +
+                        sine(tone) * 0.42 +
+                        sine(tone * 2.01) * 0.14) *
+                    Math.exp(-position * 5.1);
+            } else if (recipe.kind === "strings") {
+                const vibrato = 1 + Math.sin(time * Math.PI * 10) * 0.004;
+                value =
+                    (sine(tone * vibrato) * 0.42 +
+                        sine(tone * 1.006) * 0.28 +
+                        sine(tone * 2.01) * 0.1) *
+                    Math.sin(Math.min(1, position * 7) * Math.PI * 0.5) *
+                    Math.exp(-position * 0.72);
+            } else if (recipe.kind === "brass") {
+                value =
+                    (sine(tone) * 0.4 +
+                        sine(tone * 2) * 0.24 +
+                        sine(tone * 3) * 0.16 +
+                        sine(tone * 4) * 0.08) *
+                    Math.sin(Math.min(1, position * 12) * Math.PI * 0.5) *
+                    Math.exp(-position * 1.45);
+            } else if (recipe.kind === "reed") {
+                const phase = (tone * time) % 1;
+                value =
+                    ((phase * 2 - 1) * 0.24 +
+                        sine(tone) * 0.43 +
+                        sine(tone * 2) * 0.15) *
+                    Math.sin(Math.min(1, position * 18) * Math.PI * 0.5) *
+                    Math.exp(-position * 1.35);
+            } else if (recipe.kind === "flute") {
+                value =
+                    (sine(tone) * 0.7 +
+                        sine(tone * 2) * 0.08 +
+                        noise * 0.025) *
+                    Math.sin(Math.min(1, position * 20) * Math.PI * 0.5) *
+                    Math.exp(-position * 1.1);
             } else if (recipe.kind === "fx") {
                 const frequency = tone * (1.75 - position * 1.25);
                 value =
